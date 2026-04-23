@@ -1,350 +1,299 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dungeon RPG</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body { background:#000; color:#00ff88; font-family: monospace; }
+  <title>Dungeon RPG</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { background:#000; color:#00ff88; font-family: monospace; }
 
-#playerInfo { position:fixed; top:10px; left:10px; width:320px; font-size:22px; }
-#dialogBox { position:fixed; top:10px; right:10px; width:420px; font-size:24px; }
+    #playerInfo { position:fixed; top:10px; left:10px; width:320px; font-size:22px; }
+    #dialogBox { position:fixed; top:10px; right:10px; width:420px; font-size:24px; }
 
-#enemyCenter {
-  position:fixed; top:45%; left:50%;
-  transform:translate(-50%,-50%);
-  text-align:center; font-size:48px; display:none;
-}
+    #enemyCenter {
+      position:fixed; top:45%; left:50%;
+      transform:translate(-50%,-50%);
+      text-align:center; font-size:48px; display:none;
+    }
 
-.hpWrapper {
-  position:fixed; top:80px;
-  width:260px; height:28px;
-  border:1px solid #00ff88; background:#111;
-}
-#playerHPBar { left:25%; }
-#enemyHPBar { right:25%; }
+    .hpWrapper {
+      position:fixed; top:80px;
+      width:260px; height:28px;
+      border:1px solid #00ff88; background:#111;
+    }
+    #playerHPBar { left:25%; }
+    #enemyHPBar { right:25%; }
 
-.barFill { height:100%; background:#00ff88; }
+    .barFill { height:100%; background:#00ff88; }
 
-#controls {
-  position:fixed; bottom:40px; left:50%;
-  transform:translateX(-50%);
-  width:600px; border:1px solid #00ff88; padding:20px;
-}
+    #controls {
+      position:fixed; bottom:40px; left:50%;
+      transform:translateX(-50%);
+      width:600px; border:1px solid #00ff88; padding:20px;
+    }
 
-#shop,#inventory{
-  position:fixed; top:50%; left:50%;
-  transform:translate(-50%,-50%);
-  width:360px; display:none;
-  border:1px solid #00ff88; padding:15px;
-}
+    #shop,#inventory{
+      position:fixed; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      width:360px; display:none;
+      border:1px solid #00ff88; padding:15px;
+    }
 
-button{
-  background:#111; color:#00ff88;
-  border:1px solid #00ff88;
-  padding:10px; margin:4px;
-}
-</style>
+    button{
+      background:#111; color:#00ff88;
+      border:1px solid #00ff88;
+      padding:10px; margin:4px;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="enemyCenter">
-  <div id="enemySprite"></div>
-  <div id="enemyHPText"></div>
-</div>
+  <div id="enemyCenter">
+    <div id="enemySprite"></div>
+    <div id="enemyHPText"></div>
+  </div>
 
-<div id="playerHPBar" class="hpWrapper"><div id="playerFill" class="barFill"></div></div>
-<div id="enemyHPBar" class="hpWrapper"><div id="enemyFill" class="barFill"></div></div>
+  <div id="playerHPBar" class="hpWrapper"><div id="playerFill" class="barFill"></div></div>
+  <div id="enemyHPBar" class="hpWrapper"><div id="enemyFill" class="barFill"></div></div>
 
-<div id="dialogBox">
-<b>📖 STORY</b>
-<div id="dialogContent">Level 1 - Room 0<br>Choose a direction...</div>
-</div>
+  <div id="dialogBox">
+    <b>📖 STORY</b>
+    <div id="dialogContent">Level 1 - Room 0<br>Choose a direction...</div>
+  </div>
 
-<div id="controls">
-<button onclick="chooseRoom('left')">⬅️ LEFT</button>
-<button onclick="chooseRoom('right')">➡️ RIGHT</button>
-<button onclick="attack()">ATTACK</button>
-<button onclick="runAway()">RUN</button>
-<button onclick="heal()">HEAL</button>
-<br><br>
-<button onclick="openShop()">SHOP</button>
-<button onclick="openInventory()">INVENTORY</button>
-</div>
+  <div id="controls">
+    <button onclick="chooseRoom('left')">⬅️ LEFT</button>
+    <button onclick="chooseRoom('right')">➡️ RIGHT</button>
+    <button onclick="attack()">ATTACK</button>
+    <button onclick="runAway()">RUN</button>
+    <button onclick="heal()">HEAL</button>
+    <br><br>
+    <button onclick="openShop()">SHOP</button>
+    <button onclick="openInventory()">INVENTORY</button>
+  </div>
 
-<div id="playerInfo"></div>
+  <div id="playerInfo"></div>
 
-<div id="shop">
-<b>SHOP</b><br><br>
-<button id="wBtn" onclick="buyWeapon()"></button>
-<button id="aBtn" onclick="buyArmor()"></button><br>
-<button onclick="buyPotion('small')">Small (10g)</button>
-<button onclick="buyPotion('medium')">Medium (20g)</button>
-<button onclick="buyPotion('large')">Large (35g)</button>
-<button onclick="buyPotion('mega')">Mega (60g)</button><br><br>
-<button onclick="closePanels()">Exit</button>
-</div>
+  <div id="shop">
+    <b>SHOP</b><br><br>
+    <button id="wBtn" onclick="buyWeapon()"></button>
+    <button id="aBtn" onclick="buyArmor()"></button><br>
+    <button onclick="buyPotion('small')">Small (10g)</button>
+    <button onclick="buyPotion('medium')">Medium (20g)</button>
+    <button onclick="buyPotion('large')">Large (35g)</button>
+    <button onclick="buyPotion('mega')">Mega (60g)</button><br><br>
+    <button onclick="closePanels()">Exit</button>
+  </div>
 
-<div id="inventory">
-<b>INVENTORY</b><br><br>
-<div id="invText"></div><br>
-<button onclick="usePotion('small')">Use Small</button>
-<button onclick="usePotion('medium')">Use Medium</button>
-<button onclick="usePotion('large')">Use Large</button>
-<button onclick="usePotion('mega')">Use Mega</button><br><br>
-<button onclick="closePanels()">Exit</button>
-</div>
+  <div id="inventory">
+    <b>INVENTORY</b><br><br>
+    <div id="invText"></div><br>
+    <button onclick="usePotion('small')">Use Small</button>
+    <button onclick="usePotion('medium')">Use Medium</button>
+    <button onclick="usePotion('large')">Use Large</button>
+    <button onclick="usePotion('mega')">Use Mega</button><br><br>
+    <button onclick="closePanels()">Exit</button>
+  </div>
 
-<script>
+  <script>
 
-let player={
-  hp:20,maxhp:20,gold:50,
-  level:1,exp:0,expNext:10,
-  weapon:0,armor:0,
-  potions:{small:0,medium:0,large:0,mega:0}
-};
+    let player = {
+      hp:20, maxhp:20, gold:50,
+      level:1, exp:0, expNext:10,
+      weapon:0, armor:0,
+      potions:{ small:0, medium:0, large:0, mega:0 }
+    };
 
-let enemy=null;
-let storedEnemy=null;
-let inCombat=false;
-let roomActive=false;
-let roomCount=0;
+    let enemy = null;
+    let storedEnemy = null;
+    let inCombat = false;
+    let roomActive = false;
+    let roomCount = 0;
 
-const healVal={small:10,medium:20,large:30,mega:50};
+    const healVal = { small:10, medium:20, large:30, mega:50 };
 
-const enemies=[
-  {name:"Goblin",sprite:"👺",hp:16,dmg:3},
-  {name:"Skeleton",sprite:"💀",hp:20,dmg:4},
-  {name:"Slime",sprite:"🟢",hp:14,dmg:2}
-];
+    const enemies = [
+      { name:"Goblin", sprite:"👺", hp:16, dmg:3 },
+      { name:"Skeleton", sprite:"💀", hp:20, dmg:4 },
+      { name:"Slime", sprite:"🟢", hp:14, dmg:2 }
+    ];
 
-function closePanels(){
-  shop.style.display="none";
-  inventory.style.display="none";
-}
-
-function openShop(){
-  if(inCombat){story("Can't shop");return;}
-  closePanels();
-  updateShop();
-  shop.style.display="block";
-}
-
-function openInventory(){
-  if(inCombat){story("Can't open inventory");return;}
-  closePanels();
-  inventory.style.display="block";
-}
-
-function updateShop(){
-  wBtn.innerText="Weapon ("+(20+player.weapon*10)+"g)";
-  aBtn.innerText="Armor ("+(20+player.armor*10)+"g)";
-}
-
-function spendGold(x){
-  if(player.gold<x){story("Not enough gold");return false;}
-  player.gold-=x;
-  updateShop(); // ✅ refresh immediately
-  return true;
-}
-
-function buyWeapon(){
-  if(spendGold(20+player.weapon*10)){
-    player.weapon++;
-    story("Bought weapon");
-    updateShop(); // ✅ refresh after upgrade
-  }
-}
-
-function buyArmor(){
-  if(spendGold(20+player.armor*10)){
-    player.armor++;
-    story("Bought armor");
-    updateShop();
-  }
-}
-
-function buyPotion(t){
-  if(spendGold({small:10,medium:20,large:35,mega:60}[t])){
-    player.potions[t]++;
-    story("Bought "+t);
-  }
-}
-
-function getDamage(){ return 3+player.weapon*2; }
-function getDefense(){ return player.armor; }
-
-function critChance(){ return Math.min(0.05+player.level*0.01,0.3); }
-
-function gainExp(x){
-  player.exp+=x;
-  while(player.exp>=player.expNext){
-    player.exp-=player.expNext;
-    player.level++;
-    player.expNext=Math.floor(player.expNext*1.4);
-    story("LEVEL UP!");
-  }
-}
-
-function attack(){
-  if(!enemy){story("No enemy");return;}
-
-  let dmg=getDamage();
-  let crit=false;
-
-  if(Math.random()<critChance()){
-    dmg=Math.floor(dmg*1.5);
-    crit=true;
-  }
-
-  enemy.hp-=dmg;
-  let text="You hit "+enemy.name+" for "+dmg+(crit?" CRIT!":"");
-
-  if(enemy.hp<=0){
-    let gold=10+player.level*2;
-    player.gold+=gold;
-    gainExp(5+player.level);
-
-    if(Math.random()<0.5){
-      let types=["small","medium","large"];
-      let drop=types[Math.floor(Math.random()*3)];
-      player.potions[drop]++;
-      text+=" | Found "+drop;
+    function closePanels(){
+      document.getElementById("shop").style.display = "none";
+      document.getElementById("inventory").style.display = "none";
     }
 
-    story(text+" | Killed! +"+gold+"g");
-    enemy=null;
-    storedEnemy=null;
-    inCombat=false;
-    roomActive=false;
-    enemyCenter.style.display="none";
-    return;
-  }
-
-  setTimeout(()=>{
-    let edmg=Math.max(1,enemy.dmg-getDefense());
-    player.hp-=edmg;
-    story(text+" | "+enemy.name+" hits "+edmg);
-    if(player.hp<=0) die(enemy.name);
-  },300);
-}
-
-function chooseRoom(dir){
-
-  if(inCombat){story("Finish fight");return;}
-
-  closePanels();
-
-  if(storedEnemy){
-    enemy=storedEnemy;
-    inCombat=true;
-    enemyCenter.style.display="block";
-    story("You return... "+enemy.name+" waits!");
-    return;
-  }
-
-  if(roomActive){story("Clear room first");return;}
-
-  roomCount++;
-  roomActive=true;
-
-  if(Math.random()<0.4){
-    let gold=5+player.level*2;
-    player.gold+=gold;
-    story("You found "+gold+" gold!");
-    roomActive=false;
-    return;
-  }
-
-  let e=enemies[Math.floor(Math.random()*enemies.length)];
-  let scale=Math.max(0.2,player.level*0.3);
-
-  enemy={
-    name:e.name,
-    sprite:e.sprite,
-    hp:Math.floor(e.hp+scale*2),
-    maxhp:Math.floor(e.hp+scale*2),
-    dmg:Math.floor(e.dmg+scale*0.5)
-  };
-
-  storedEnemy=enemy;
-
-  inCombat=true;
-  enemyCenter.style.display="block";
-  story("You go "+dir+"... "+enemy.name+" appears!");
-}
-
-function runAway(){
-  if(!enemy){story("Nothing to run");return;}
-  enemy=null;
-  inCombat=false;
-  enemyCenter.style.display="none";
-  story("You fled. Return to finish the room.");
-}
-
-function heal(){
-  let order=["mega","large","medium","small"];
-  for(let p of order){
-    if(player.potions[p]>0){
-      usePotion(p);
-      return;
+    function openShop(){
+      if(inCombat){ story("Can't shop"); return; }
+      closePanels();
+      updateShop();
+      document.getElementById("shop").style.display = "block";
     }
-  }
-  story("No potions");
-}
 
-function usePotion(t){
-  if(player.potions[t]<=0){story("No "+t);return;}
-  player.hp=Math.min(player.maxhp,player.hp+healVal[t]);
-  player.potions[t]--;
-  story("Used "+t+" (+")+healVal[t]+")");
-}
+    function openInventory(){
+      if(inCombat){ story("Can't open inventory"); return; }
+      closePanels();
+      document.getElementById("inventory").style.display = "block";
+    }
 
-function story(t){
-  dialogContent.innerHTML="Level "+player.level+" - Room "+roomCount+"<br>"+t;
-}
+    function updateShop(){
+      document.getElementById("wBtn").innerText = "Weapon (" + (20 + player.weapon*10) + "g)";
+      document.getElementById("aBtn").innerText = "Armor (" + (20 + player.armor*10) + "g)";
+    }
 
-function updateUI(){
-  playerInfo.innerHTML=
-    "LVL:"+player.level+
-    "<br>EXP:"+player.exp+"/"+player.expNext+
-    "<br>HP:"+player.hp+"/"+player.maxhp+
-    "<br>GOLD:"+player.gold;
+    function spendGold(x){
+      if(player.gold < x){ story("Not enough gold"); return false; }
+      player.gold -= x;
+      updateShop();
+      return true;
+    }
 
-  if(enemy){
-    enemySprite.innerText=enemy.sprite;
-    enemyHPText.innerText=enemy.name+" HP:"+enemy.hp+"/"+enemy.maxhp;
-  }
+    function buyWeapon(){
+      if(spendGold(20 + player.weapon*10)){
+        player.weapon++;
+        story("Bought weapon");
+        updateShop();
+      }
+    }
 
-  playerFill.style.width=(player.hp/player.maxhp*100)+"%";
-  enemyFill.style.width=enemy?(enemy.hp/enemy.maxhp*100)+"%":"0%";
+    function buyArmor(){
+      if(spendGold(20 + player.armor*10)){
+        player.armor++;
+        story("Bought armor");
+        updateShop();
+      }
+    }
 
-  invText.innerHTML=
-    "Small ("+healVal.small+"):"+player.potions.small+
-    "<br>Medium ("+healVal.medium+"):"+player.potions.medium+
-    "<br>Large ("+healVal.large+"):"+player.potions.large+
-    "<br>Mega ("+healVal.mega+"):"+player.potions.mega;
-}
+    function buyPotion(t){
+      if(spendGold({ small:10, medium:20, large:35, mega:60 }[t])){
+        player.potions[t]++;
+        story("Bought " + t);
+      }
+    }
 
-function die(k){
-  story("Killed by "+k);
-  player.hp=player.maxhp;
-  player.level=1;
-  player.exp=0;
-  player.expNext=10;
-  player.gold=50;
-  player.potions={small:0,medium:0,large:0,mega:0};
-  roomCount=0;
-  enemy=null;
-  storedEnemy=null;
-  inCombat=false;
-  roomActive=false;
-  enemyCenter.style.display="none";
-}
+    function getDamage(){ return 3 + player.weapon*2; }
+    function getDefense(){ return player.armor; }
 
-setInterval(updateUI,100);
+    function critChance(){ return Math.min(0.05 + player.level*0.01, 0.3); }
 
-</script>
+    function gainExp(x){
+      player.exp += x;
+      while(player.exp >= player.expNext){
+        player.exp -= player.expNext;
+        player.level++;
+        player.expNext = Math.floor(player.expNext * 1.4);
+        story("LEVEL UP!");
+      }
+    }
 
-</body>
-</html>
+    function attack(){
+      if(!enemy){ story("No enemy"); return; }
+
+      let dmg = getDamage();
+      let crit = false;
+
+      if(Math.random() < critChance()){ 
+        dmg = Math.floor(dmg * 1.5);
+        crit = true;
+      }
+
+      enemy.hp -= dmg;
+      let text = "You hit " + enemy.name + " for " + dmg + (crit ? " CRIT!" : "");
+
+      if(enemy.hp <= 0){
+        let gold = 10 + player.level*2;
+        player.gold += gold;
+        gainExp(5 + player.level);
+
+        if(Math.random() < 0.5){
+          let types = ["small","medium","large"];
+          let drop = types[Math.floor(Math.random() * 3)];
+          player.potions[drop]++;
+          text += " | Found " + drop;
+        }
+
+        story(text + " | Killed! +" + gold + "g");
+        enemy = null;
+        storedEnemy = null;
+        inCombat = false;
+        roomActive = false;
+        document.getElementById("enemyCenter").style.display = "none";
+        return;
+      }
+
+      setTimeout(() => {
+        let edmg = Math.max(1, enemy.dmg - getDefense());
+        player.hp -= edmg;
+        story(text + " | " + enemy.name + " hits " + edmg);
+        if(player.hp <= 0) die(enemy.name);
+      }, 300);
+    }
+
+    function chooseRoom(dir){
+      if(inCombat){ story("Finish fight"); return; }
+
+      closePanels();
+
+      if(storedEnemy){
+        enemy = storedEnemy;
+        inCombat = true;
+        document.getElementById("enemyCenter").style.display = "block";
+        story("You return... " + enemy.name + " waits!");
+        return;
+      }
+
+      if(roomActive){ story("Clear room first"); return; }
+
+      roomCount++;
+      roomActive = true;
+
+      if(Math.random() < 0.4){
+        let gold = 5 + player.level*2;
+        player.gold += gold;
+        story("You found " + gold + " gold!");
+        roomActive = false;
+        return;
+      }
+
+      let e = enemies[Math.floor(Math.random() * enemies.length)];
+      let scale = Math.max(0.2, player.level * 0.3);
+
+      enemy = {
+        name: e.name,
+        sprite: e.sprite,
+        hp: Math.floor(e.hp + scale*2),
+        maxhp: Math.floor(e.hp + scale*2),
+        dmg: Math.floor(e.dmg + scale*0.5)
+      };
+
+      storedEnemy = enemy;
+
+      inCombat = true;
+      document.getElementById("enemyCenter").style.display = "block";
+      story("You go " + dir + "... " + enemy.name + " appears!");
+    }
+
+    function runAway(){
+      if(!enemy){ story("Nothing to run"); return; }
+      enemy = null;
+      inCombat = false;
+      document.getElementById("enemyCenter").style.display = "none";
+      story("You fled. Return to finish the room.");
+    }
+
+    function heal(){
+      let order = ["mega","large","medium","small"];
+      for(let p of order){
+        if(player.potions[p] > 0){
+          usePotion(p);
+          return;
+        }
+      }
+      story("No potions");
+    }
+
+    function usePotion(t){
+      if(player.potions[t] <= 0){ story("No " + t); return; }
+      player.hp = Math.min(player.maxhp, player.hp + healVal[t]);
+      player.potions[t]--;
+      story("Used " + t + " (+

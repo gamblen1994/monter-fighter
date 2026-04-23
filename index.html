@@ -5,40 +5,68 @@
   <title>Dungeon RPG</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { background:#000; color:#00ff88; font-family: monospace; margin:0; padding:0; }
-    #playerInfo { position:fixed; top:10px; left:10px; width:320px; font-size:22px; }
-    #dialogBox { position:fixed; top:10px; right:10px; width:420px; font-size:24px; }
-    #enemyCenter {
-      position:fixed; top:45%; left:50%;
-      transform:translate(-50%,-50%);
-      text-align:center; font-size:48px; display:none;
+    :root{
+      --bg:#000;
+      --accent:#00ff88;
+      --accent-weak:#113322;
+      --boss:#ff6b6b;
+      --panel-pad:14px;
+      --btn-pad:12px;
+      --font-mono: "Courier New", Courier, monospace;
     }
-    .hpWrapper {
-      position:fixed; top:80px;
-      width:260px; height:28px;
-      border:1px solid #00ff88; background:#111;
+
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--accent); font-family:var(--font-mono); -webkit-tap-highlight-color: transparent;}
+    /* Top bars */
+    #topRow{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px;}
+    #playerInfo{font-size:18px;}
+    #statusRow{font-size:14px; text-align:right;}
+    /* Enemy center */
+    #enemyCenter{display:none; text-align:center; margin:6px auto;}
+    #enemySprite{font-size:72px; line-height:1; margin-bottom:6px;}
+    #enemyHPText{font-size:18px;}
+    /* HP bars */
+    .hpWrapper{width:90%; max-width:420px; height:24px; border:1px solid var(--accent); background:#111; margin:8px auto; position:relative;}
+    .barFill{height:100%; background:var(--accent); width:100%; transition:width 0.12s linear;}
+    /* Dialog / story */
+    #dialogBox{width:94%; max-width:520px; margin:6px auto; padding:8px; border:1px solid var(--accent); font-size:16px; box-sizing:border-box;}
+    /* Controls - responsive */
+    #controls{width:94%; max-width:760px; margin:10px auto; padding:12px; border:1px solid var(--accent); display:flex; flex-wrap:wrap; gap:8px; justify-content:center; box-sizing:border-box;}
+    #controls button, #shop button, #inventory button{background:#111; color:var(--accent); border:1px solid var(--accent); padding:var(--btn-pad); margin:0; min-width:84px; font-size:16px; border-radius:6px; box-shadow: none; touch-action:manipulation;}
+    /* Make primary action buttons taller on mobile */
+    .bigBtn{padding:14px 18px; font-size:18px;}
+    /* Panels */
+    #shop,#inventory{display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:92%; max-width:380px; padding:var(--panel-pad); border:1px solid var(--accent); background:var(--bg); z-index:40;}
+    /* Save/Load small controls */
+    #saveControls{display:flex; gap:8px; align-items:center;}
+    #saveStatus{font-size:13px; color:var(--accent); margin-left:6px;}
+    /* Boss style */
+    .boss{color:var(--boss); font-weight:bold;}
+    /* Inventory text */
+    #invText{font-size:15px; margin-bottom:8px;}
+    /* Responsive tweaks */
+    @media (max-width:600px){
+      #enemySprite{font-size:56px;}
+      #playerInfo{font-size:16px;}
+      .hpWrapper{height:20px;}
+      #controls button{flex:1 1 45%; min-width:120px;}
+      .bigBtn{flex:1 1 100%;}
+      #dialogBox{font-size:15px;}
     }
-    #playerHPBar { left:25%; }
-    #enemyHPBar { right:25%; }
-    .barFill { height:100%; background:#00ff88; }
-    #controls {
-      position:fixed; bottom:40px; left:50%;
-      transform:translateX(-50%);
-      width:600px; border:1px solid #00ff88; padding:20px;
-      box-sizing:border-box;
-    }
-    #shop,#inventory{
-      position:fixed; top:50%; left:50%;
-      transform:translate(-50%,-50%);
-      width:360px; display:none;
-      border:1px solid #00ff88; padding:15px;
-      background:#000;
-    }
-    button{ background:#111; color:#00ff88; border:1px solid #00ff88; padding:10px; margin:4px; cursor:pointer; }
-    .boss { color:#ff4444; font-weight:bold; }
   </style>
 </head>
 <body>
+
+  <div id="topRow">
+    <div id="playerInfo">LVL:1<br>HP:20/20<br>GOLD:50</div>
+    <div id="statusRow">
+      <div id="saveControls">
+        <button id="saveBtn">Save</button>
+        <button id="loadBtn">Load</button>
+        <button id="resetBtn">Reset</button>
+        <div id="saveStatus"></div>
+      </div>
+    </div>
+  </div>
 
   <div id="enemyCenter">
     <div id="enemySprite"></div>
@@ -54,22 +82,20 @@
   </div>
 
   <div id="controls">
-    <button onclick="chooseRoom('left')">⬅️ LEFT</button>
-    <button onclick="chooseRoom('right')">➡️ RIGHT</button>
+    <button class="bigBtn" onclick="chooseRoom('left')">⬅️ LEFT</button>
+    <button class="bigBtn" onclick="chooseRoom('right')">➡️ RIGHT</button>
     <button onclick="attack()">ATTACK</button>
     <button onclick="runAway()">RUN</button>
     <button onclick="heal()">HEAL</button>
-    <br><br>
+
     <button onclick="openShop()">SHOP</button>
     <button onclick="openInventory()">INVENTORY</button>
   </div>
 
-  <div id="playerInfo"></div>
-
   <div id="shop">
     <b>SHOP</b><br><br>
     <button id="wBtn" onclick="buyWeapon()"></button>
-    <button id="aBtn" onclick="buyArmor()"></button><br>
+    <button id="aBtn" onclick="buyArmor()"></button><br><br>
     <button onclick="buyPotion('small')">Small (10g)</button>
     <button onclick="buyPotion('medium')">Medium (20g)</button>
     <button onclick="buyPotion('large')">Large (35g)</button>
@@ -88,104 +114,262 @@
   </div>
 
   <script>
+    // Helper
     const el = id => document.getElementById(id);
+    const SAVE_KEY = 'dungeon_rpg_save_v1';
 
     // Tuning
     const basePlayerHP = 20;
-    const hpPerLevel = 12;            // larger per-level HP gain
+    const hpPerLevel = 14;
     const earlyEasyLevels = 3;
+    const baseBossDepth = 3;
+    const bossDepthPerLevel = 0.6;
+    const extraBossChance = 0.02;
 
-    // Boss tuning
-    const baseBossDepth = 2;          // bosses appear earlier
-    const bossDepthPerLevel = 1;      // boss depth increase per level
+    // Game state
+    let player = {
+      level: 1, exp:0, expNext:10,
+      hp: basePlayerHP, maxhp: basePlayerHP,
+      gold:50, weapon:0, armor:0,
+      potions:{ small:0, medium:0, large:0, mega:0 }
+    };
 
-    let player = { level:1, exp:0, expNext:10, hp:basePlayerHP, maxhp:basePlayerHP, gold:50, weapon:0, armor:0, potions:{ small:0, medium:0, large:0, mega:0 } };
-
-    let enemy=null, storedEnemy=null, inCombat=false, roomActive=false, roomCount=0;
+    let enemy = null;
+    let storedEnemy = null;
+    let inCombat = false;
+    let roomActive = false;
+    let roomCount = 0;
 
     const healVal = { small:10, medium:20, large:30, mega:50 };
-
     const enemies = [
       { name:"Goblin", sprite:"👺", hp:16, dmg:3 },
       { name:"Skeleton", sprite:"💀", hp:20, dmg:4 },
       { name:"Slime", sprite:"🟢", hp:14, dmg:2 }
     ];
 
+    // Recalculate/level behaviour
     function recalcPlayerHPOnLevelUp(){
       player.maxhp = basePlayerHP + (player.level - 1) * hpPerLevel;
-      // heal fully on level up so player feels stronger
+      // heal to full on level up
       player.hp = player.maxhp;
     }
 
     function scaleNormalEnemy(base){
       const lvl = player.level;
       let multiplier;
-      if(lvl <= earlyEasyLevels){
-        multiplier = 1 + lvl * 0.25; // still gentle but a bit stronger
+      if (lvl <= earlyEasyLevels) {
+        multiplier = 1 + lvl * 0.22;
       } else {
-        multiplier = 1 + Math.pow(lvl, 1.25) * 0.22; // stronger growth
+        multiplier = 1 + Math.pow(lvl, 1.35) * 0.18;
       }
-      // add a small random variance so not all enemies identical
-      const variance = 0.9 + Math.random() * 0.4; // 0.9-1.3
-      const hp = Math.max(1, Math.floor((base.hp * multiplier + lvl * 3) * variance));
-      const dmg = Math.max(1, Math.floor((base.dmg * (1 + lvl * 0.12) + Math.floor(lvl * 0.7)) * (0.95 + Math.random()*0.2)));
-      return { name: base.name, sprite: base.sprite, hp: hp, maxhp: hp, dmg: dmg, isBoss:false };
+      const variance = 0.9 + Math.random() * 0.4;
+      const hp = Math.max(1, Math.floor((base.hp * multiplier + lvl * 4) * variance));
+      const dmg = Math.max(1, Math.floor((base.dmg * (1 + lvl * 0.14) + Math.floor(lvl * 0.9)) * (0.95 + Math.random()*0.2)));
+      return { name: base.name, sprite: base.sprite, hp: hp, maxhp: hp, dmg: dmg, isBoss: false };
     }
 
     function createBoss(){
       const lvl = player.level;
-      const bossBaseHp = 60;
-      const hp = Math.floor(bossBaseHp + lvl * 28 + Math.pow(lvl,1.3)*10);
-      const dmg = Math.max(3, Math.floor(8 + lvl*2.8 + Math.pow(lvl,1.05)*1.1));
+      const bossBaseHp = 70;
+      const hp = Math.floor(bossBaseHp + lvl * 32 + Math.pow(lvl, 1.25) * 12);
+      const dmg = Math.max(4, Math.floor(10 + lvl * 3.2 + Math.pow(lvl, 1.05) * 1.6));
       const name = "Overlord L" + lvl;
-      return { name: name, sprite: "👹", hp: hp, maxhp: hp, dmg: dmg, isBoss:true };
+      return { name: name, sprite: "👹", hp: hp, maxhp: hp, dmg: dmg, isBoss: true };
     }
 
     function currentBossDepth(){
-      return Math.max(2, baseBossDepth + Math.floor(player.level * bossDepthPerLevel));
+      return Math.max(2, Math.floor(baseBossDepth + Math.floor(player.level * bossDepthPerLevel)));
     }
 
-    // UI and shop
-    function closePanels(){ el("shop").style.display = "none"; el("inventory").style.display = "none"; }
-    function openShop(){ if(inCombat){ story("Can't shop"); return;} closePanels(); updateShop(); el("shop").style.display = "block"; }
-    function openInventory(){ if(inCombat){ story("Can't open inventory"); return;} closePanels(); el("inventory").style.display = "block"; }
-    function updateShop(){ el("wBtn").innerText = "Weapon (" + (20 + player.weapon*10) + "g)"; el("aBtn").innerText = "Armor (" + (20 + player.armor*10) + "g)"; }
-    function spendGold(x){ if(player.gold < x){ story("Not enough gold"); return false;} player.gold -= x; updateShop(); return true; }
-    function buyWeapon(){ if(spendGold(20 + player.weapon*10)){ player.weapon++; story("Bought weapon"); updateShop(); } }
-    function buyArmor(){ if(spendGold(20 + player.armor*10)){ player.armor++; story("Bought armor"); updateShop(); } }
-    function buyPotion(t){ const cost = { small:10, medium:20, large:35, mega:60 }[t]; if(spendGold(cost)){ player.potions[t]++; story("Bought " + t);} }
+    /* ---------------- Save / Load ---------------- */
+    function saveGame(showStatus = true){
+      try{
+        const data = {
+          player, enemy, storedEnemy, inCombat, roomActive, roomCount
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        if(showStatus){
+          showSaveStatus('Saved');
+        }
+        return true;
+      }catch(e){
+        showSaveStatus('Save failed');
+        return false;
+      }
+    }
 
-    // combat
-    function getDamage(){ return 3 + player.weapon*2; }
+    function loadGame(confirmOverwrite = true){
+      const raw = localStorage.getItem(SAVE_KEY);
+      if(!raw){ showSaveStatus('No save'); return false; }
+      if(confirmOverwrite){
+        if(!confirm('Load saved game and overwrite current progress?')) return false;
+      }
+      try{
+        const data = JSON.parse(raw);
+        // shallow restore - careful with object shapes
+        if(data.player){
+          player = data.player;
+        }
+        enemy = data.enemy;
+        storedEnemy = data.storedEnemy;
+        inCombat = !!data.inCombat;
+        roomActive = !!data.roomActive;
+        roomCount = data.roomCount || 0;
+        // ensure UI updates reflect loaded state
+        showSaveStatus('Loaded');
+        updateUI();
+        return true;
+      }catch(e){
+        showSaveStatus('Load failed');
+        return false;
+      }
+    }
+
+    function clearSave(){
+      if(!confirm('Clear saved game from local storage?')) return;
+      localStorage.removeItem(SAVE_KEY);
+      showSaveStatus('Save cleared');
+    }
+
+    // small visual feedback
+    let saveTimer = null;
+    function showSaveStatus(text){
+      el('saveStatus').innerText = text;
+      if(saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(()=>{ el('saveStatus').innerText = ''; }, 2500);
+    }
+
+    /* ---------------- UI & shop ---------------- */
+    function closePanels(){ el('shop').style.display = 'none'; el('inventory').style.display = 'none'; }
+    function openShop(){ if(inCombat){ story("Can't shop"); return; } closePanels(); updateShop(); el('shop').style.display='block'; }
+    function openInventory(){ if(inCombat){ story("Can't open inventory"); return; } closePanels(); el('inventory').style.display='block'; }
+    function updateShop(){ el('wBtn').innerText = 'Weapon (' + (20 + player.weapon*10) + 'g)'; el('aBtn').innerText = 'Armor (' + (20 + player.armor*10) + 'g)'; }
+    function spendGold(x){ if(player.gold < x){ story('Not enough gold'); return false;} player.gold -= x; updateShop(); return true; }
+    function buyWeapon(){ if(spendGold(20 + player.weapon*10)){ player.weapon++; story('Bought weapon'); updateShop(); } }
+    function buyArmor(){ if(spendGold(20 + player.armor*10)){ player.armor++; story('Bought armor'); updateShop(); } }
+    function buyPotion(t){ const cost = { small:10, medium:20, large:35, mega:60 }[t]; if(spendGold(cost)){ player.potions[t]++; story('Bought ' + t); } }
+
+    /* ---------------- Combat ---------------- */
+    function getDamage(){ return 4 + player.weapon * 2; }
     function getDefense(){ return player.armor; }
-    function critChance(){ return Math.min(0.06 + player.level*0.01, 0.35); }
+    function critChance(){ return Math.min(0.06 + player.level * 0.01, 0.38); }
 
-    function gainExp(x){ player.exp += x; while(player.exp >= player.expNext){ player.exp -= player.expNext; player.level++; player.expNext = Math.floor(player.expNext*1.45); recalcPlayerHPOnLevelUp(); story("LEVEL UP! Max HP now " + player.maxhp); } }
+    function gainExp(x){
+      player.exp += x;
+      while(player.exp >= player.expNext){
+        player.exp -= player.expNext;
+        player.level++;
+        player.expNext = Math.floor(player.expNext * 1.5);
+        recalcPlayerHPOnLevelUp();
+        story('LEVEL UP! Max HP now ' + player.maxhp);
+      }
+    }
 
-    function attack(){ if(!enemy){ story("No enemy"); return; } let dmg = getDamage(); let crit=false; if(Math.random() < critChance()){ dmg = Math.floor(dmg*1.6); crit=true; } enemy.hp -= dmg; let text = "You hit " + enemy.name + " for " + dmg + (crit?" CRIT!":""); if(enemy.hp <= 0){ let gold = enemy.isBoss ? (40 + player.level*6) : (12 + player.level*3); player.gold += gold; gainExp(enemy.isBoss ? (20 + player.level*3) : (6 + player.level)); if(!enemy.isBoss && Math.random() < 0.6){ let types=["small","medium","large"]; let drop = types[Math.floor(Math.random()*3)]; player.potions[drop]++; text += " | Found " + drop; } story(text + " | Killed! +" + gold + "g"); enemy = null; storedEnemy = null; inCombat = false; roomActive = false; el("enemyCenter").style.display = "none"; return; } setTimeout(()=>{ let edmg = Math.max(1, enemy.dmg - getDefense()); player.hp -= edmg; story(text + " | " + enemy.name + " hits " + edmg); if(player.hp <= 0) die(enemy.name); }, 300); }
+    function attack(){
+      if(!enemy){ story('No enemy'); return; }
+      let dmg = getDamage(), crit=false;
+      if(Math.random() < critChance()){ dmg = Math.floor(dmg * 1.6); crit=true; }
+      enemy.hp -= dmg;
+      let text = 'You hit ' + enemy.name + ' for ' + dmg + (crit ? ' CRIT!' : '');
+      if(enemy.hp <= 0){
+        let gold = enemy.isBoss ? (50 + player.level * 8) : (14 + player.level * 4);
+        player.gold += gold;
+        gainExp(enemy.isBoss ? (30 + player.level * 4) : (8 + player.level * 2));
+        if(!enemy.isBoss && Math.random() < 0.65){
+          let types = ['small','medium','large'];
+          let drop = types[Math.floor(Math.random()*3)];
+          player.potions[drop]++;
+          text += ' | Found ' + drop;
+        }
+        story(text + ' | Killed! +' + gold + 'g');
+        enemy = null; storedEnemy = null; inCombat=false; roomActive=false; el('enemyCenter').style.display='none';
+        return;
+      }
+      setTimeout(()=>{
+        let edmg = Math.max(1, enemy.dmg - getDefense());
+        player.hp -= edmg;
+        story(text + ' | ' + enemy.name + ' hits ' + edmg);
+        if(player.hp <= 0) die(enemy.name);
+      }, 300);
+    }
 
-    function chooseRoom(dir){ if(inCombat){ story("Finish fight"); return;} closePanels(); if(storedEnemy){ enemy = storedEnemy; inCombat=true; el("enemyCenter").style.display = "block"; story("You return... " + enemy.name + " waits!"); return; } if(roomActive){ story("Clear room first"); return; } roomCount++; roomActive = true; // find gold
-      if(Math.random() < 0.22){ let gold = 6 + player.level*3; player.gold += gold; story("You found " + gold + " gold!"); roomActive=false; return; }
+    /* ---------------- Rooms & Spawning ---------------- */
+    function chooseRoom(dir){
+      if(inCombat){ story('Finish fight'); return; }
+      closePanels();
+      if(storedEnemy){ enemy = storedEnemy; inCombat=true; el('enemyCenter').style.display='block'; story('You return... ' + enemy.name + ' waits!'); return; }
+      if(roomActive){ story('Clear room first'); return; }
+      roomCount++;
+      roomActive = true;
+
+      // small gold find
+      if(Math.random() < 0.22){
+        let gold = 6 + player.level * 3; player.gold += gold; story('You found ' + gold + ' gold!'); roomActive=false; return;
+      }
+
       const bossDepth = currentBossDepth();
-      // spawn boss if reached depth OR small random chance to encounter an elite
-      if(roomCount > 0 && (roomCount % bossDepth === 0 || Math.random() < 0.06 + player.level*0.01)){ 
-        enemy = createBoss(); storedEnemy = enemy; inCombat=true; el("enemyCenter").style.display = "block"; story("You go " + dir + "... " + enemy.name + " (BOSS) appears!"); return; }
-      // normal enemy
-      let base = enemies[Math.floor(Math.random()*enemies.length)]; enemy = scaleNormalEnemy(base); storedEnemy = enemy; inCombat=true; el("enemyCenter").style.display = "block"; story("You go " + dir + "... " + enemy.name + " appears!"); }
+      const bossChance = extraBossChance + Math.min(0.12, player.level * 0.01);
+      if( (roomCount % bossDepth === 0) || Math.random() < bossChance ){
+        enemy = createBoss();
+        storedEnemy = enemy;
+        inCombat = true;
+        el('enemyCenter').style.display = 'block';
+        story('You go ' + dir + '... ' + enemy.name + ' (BOSS) appears!');
+        return;
+      }
 
-    function runAway(){ if(!enemy){ story("Nothing to run"); return;} enemy=null; inCombat=false; el("enemyCenter").style.display = "none"; story("You fled. Return to finish the room."); }
+      let base = enemies[Math.floor(Math.random() * enemies.length)];
+      enemy = scaleNormalEnemy(base);
+      storedEnemy = enemy;
+      inCombat = true;
+      el('enemyCenter').style.display = 'block';
+      story('You go ' + dir + '... ' + enemy.name + ' appears!');
+    }
 
-    function heal(){ if(player.hp >= player.maxhp){ story("HP is full"); return; } let order=["mega","large","medium","small"]; for(let p of order){ if(player.potions[p] > 0){ usePotion(p); return; } } story("No potions"); }
-    function usePotion(t){ if(player.hp >= player.maxhp){ story("HP is full"); return; } if(player.potions[t] <= 0){ story("No " + t); return; } player.hp = Math.min(player.maxhp, player.hp + healVal[t]); player.potions[t]--; story("Used " + t + " ( +" + healVal[t] + ")"); }
+    function runAway(){ if(!enemy){ story('Nothing to run'); return; } enemy=null; inCombat=false; el('enemyCenter').style.display='none'; story('You fled. Return to finish the room.'); }
 
-    function story(t){ el("dialogContent").innerHTML = "Level " + player.level + " - Room " + roomCount + "<br>" + t; }
+    /* ---------------- Healing / Potions ---------------- */
+    function heal(){ if(player.hp >= player.maxhp){ story('HP is full'); return; } let order=['mega','large','medium','small']; for(let p of order){ if(player.potions[p] > 0){ usePotion(p); return; } } story('No potions'); }
+    function usePotion(t){ if(player.hp >= player.maxhp){ story('HP is full'); return; } if(player.potions[t] <= 0){ story('No ' + t); return; } player.hp = Math.min(player.maxhp, player.hp + healVal[t]); player.potions[t]--; story('Used ' + t + ' (+' + healVal[t] + ')'); }
 
-    function updateUI(){ el("playerInfo").innerHTML = "LVL:" + player.level + "<br>EXP:" + player.exp + "/" + player.expNext + "<br>HP:" + player.hp + "/" + player.maxhp + "<br>GOLD:" + player.gold; if(enemy){ if(enemy.isBoss){ el("enemySprite").innerText = enemy.sprite; el("enemyHPText").innerHTML = "<span class='boss'>" + enemy.name + " HP:" + enemy.hp + "/" + enemy.maxhp + "</span>"; } else { el("enemySprite").innerText = enemy.sprite; el("enemyHPText").innerText = enemy.name + " HP:" + enemy.hp + "/" + enemy.maxhp; } } else { el("enemySprite").innerText = ""; el("enemyHPText").innerText = ""; } el("playerFill").style.width = (player.hp / player.maxhp * 100) + "%"; el("enemyFill").style.width = enemy ? (enemy.hp / enemy.maxhp * 100) + "%" : "0%"; el("invText").innerHTML = "Small (" + healVal.small + "):" + player.potions.small + "<br>Medium (" + healVal.medium + "):" + player.potions.medium + "<br>Large (" + healVal.large + "):" + player.potions.large + "<br>Mega (" + healVal.mega + "):" + player.potions.mega; }
+    /* ---------------- UI ---------------- */
+    function story(t){ el('dialogContent').innerHTML = 'Level ' + player.level + ' - Room ' + roomCount + '<br>' + t; }
+    function updateUI(){
+      el('playerInfo').innerHTML = 'LVL:' + player.level + '<br>HP:' + player.hp + '/' + player.maxhp + '<br>GOLD:' + player.gold;
+      if(enemy){
+        el('enemySprite').innerText = enemy.sprite;
+        if(enemy.isBoss) el('enemyHPText').innerHTML = '<span class="boss">' + enemy.name + ' HP:' + enemy.hp + '/' + enemy.maxhp + '</span>';
+        else el('enemyHPText').innerText = enemy.name + ' HP:' + enemy.hp + '/' + enemy.maxhp;
+      } else { el('enemySprite').innerText=''; el('enemyHPText').innerText=''; }
+      el('playerFill').style.width = (player.hp / player.maxhp * 100) + '%';
+      el('enemyFill').style.width = enemy ? (enemy.hp / enemy.maxhp * 100) + '%' : '0%';
+      el('invText').innerHTML = 'Small ('+healVal.small+'):' + player.potions.small + '<br>Medium ('+healVal.medium+'):' + player.potions.medium + '<br>Large ('+healVal.large+'):' + player.potions.large + '<br>Mega ('+healVal.mega+'):' + player.potions.mega;
+    }
 
-    function die(k){ story("Killed by " + k); player.hp = player.maxhp; player.level = 1; player.exp = 0; player.expNext = 10; player.gold = 50; player.potions = { small:0, medium:0, large:0, mega:0 }; roomCount = 0; enemy=null; storedEnemy=null; inCombat=false; roomActive=false; el("enemyCenter").style.display = "none"; }
+    function die(k){
+      story('Killed by ' + k);
+      player.level = 1; player.exp = 0; player.expNext = 10; player.maxhp = basePlayerHP; player.hp = player.maxhp; player.gold = 50;
+      player.potions = { small:0, medium:0, large:0, mega:0 };
+      roomCount = 0; enemy=null; storedEnemy=null; inCombat=false; roomActive=false; el('enemyCenter').style.display='none';
+    }
 
-    setInterval(updateUI, 100); updateUI();
+    // Autosave every 15s
+    setInterval(()=>{ saveGame(false); }, 15000);
+    // Save on unload
+    window.addEventListener('beforeunload', ()=>{ saveGame(false); });
+
+    // Hook up save/load/reset buttons
+    el('saveBtn').addEventListener('click', ()=>saveGame(true));
+    el('loadBtn').addEventListener('click', ()=>loadGame(true));
+    el('resetBtn').addEventListener('click', ()=>{ if(confirm('Reset game to defaults and clear save?')){ localStorage.removeItem(SAVE_KEY); location.reload(); } });
+
+    // Initial UI updater
+    setInterval(updateUI, 100);
+    updateUI();
+
+    // Expose small functions for debugging in console (optional)
+    window._save = saveGame; window._load = loadGame; window._clearSave = clearSave;
+
   </script>
-
 </body>
 </html>

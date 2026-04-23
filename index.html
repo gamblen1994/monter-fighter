@@ -1,20 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Dungeon RPG</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { background:#000; color:#00ff88; font-family: monospace; }
-
+    body { background:#000; color:#00ff88; font-family: monospace; margin:0; padding:0; }
     #playerInfo { position:fixed; top:10px; left:10px; width:320px; font-size:22px; }
     #dialogBox { position:fixed; top:10px; right:10px; width:420px; font-size:24px; }
-
     #enemyCenter {
       position:fixed; top:45%; left:50%;
       transform:translate(-50%,-50%);
       text-align:center; font-size:48px; display:none;
     }
-
     .hpWrapper {
       position:fixed; top:80px;
       width:260px; height:28px;
@@ -22,30 +20,28 @@
     }
     #playerHPBar { left:25%; }
     #enemyHPBar { right:25%; }
-
     .barFill { height:100%; background:#00ff88; }
-
     #controls {
       position:fixed; bottom:40px; left:50%;
       transform:translateX(-50%);
       width:600px; border:1px solid #00ff88; padding:20px;
+      box-sizing:border-box;
     }
-
     #shop,#inventory{
       position:fixed; top:50%; left:50%;
       transform:translate(-50%,-50%);
       width:360px; display:none;
       border:1px solid #00ff88; padding:15px;
+      background:#000;
     }
-
     button{
       background:#111; color:#00ff88;
       border:1px solid #00ff88;
       padding:10px; margin:4px;
+      cursor:pointer;
     }
   </style>
 </head>
-
 <body>
 
   <div id="enemyCenter">
@@ -96,7 +92,7 @@
   </div>
 
   <script>
-
+    // Game state
     let player = {
       hp:20, maxhp:20, gold:50,
       level:1, exp:0, expNext:10,
@@ -118,27 +114,30 @@
       { name:"Slime", sprite:"🟢", hp:14, dmg:2 }
     ];
 
+    // Utility to update UI elements safely
+    function el(id){ return document.getElementById(id); }
+
     function closePanels(){
-      document.getElementById("shop").style.display = "none";
-      document.getElementById("inventory").style.display = "none";
+      el("shop").style.display = "none";
+      el("inventory").style.display = "none";
     }
 
     function openShop(){
       if(inCombat){ story("Can't shop"); return; }
       closePanels();
       updateShop();
-      document.getElementById("shop").style.display = "block";
+      el("shop").style.display = "block";
     }
 
     function openInventory(){
       if(inCombat){ story("Can't open inventory"); return; }
       closePanels();
-      document.getElementById("inventory").style.display = "block";
+      el("inventory").style.display = "block";
     }
 
     function updateShop(){
-      document.getElementById("wBtn").innerText = "Weapon (" + (20 + player.weapon*10) + "g)";
-      document.getElementById("aBtn").innerText = "Armor (" + (20 + player.armor*10) + "g)";
+      el("wBtn").innerText = "Weapon (" + (20 + player.weapon*10) + "g)";
+      el("aBtn").innerText = "Armor (" + (20 + player.armor*10) + "g)";
     }
 
     function spendGold(x){
@@ -149,7 +148,7 @@
     }
 
     function buyWeapon(){
-      if(spendGold(20 + player.weapon*10)){
+      if(spendGold(20 + player.weapon*10)){ 
         player.weapon++;
         story("Bought weapon");
         updateShop();
@@ -157,7 +156,7 @@
     }
 
     function buyArmor(){
-      if(spendGold(20 + player.armor*10)){
+      if(spendGold(20 + player.armor*10)){ 
         player.armor++;
         story("Bought armor");
         updateShop();
@@ -192,7 +191,7 @@
       let dmg = getDamage();
       let crit = false;
 
-      if(Math.random() < critChance()){ 
+      if(Math.random() < critChance()){  
         dmg = Math.floor(dmg * 1.5);
         crit = true;
       }
@@ -217,7 +216,7 @@
         storedEnemy = null;
         inCombat = false;
         roomActive = false;
-        document.getElementById("enemyCenter").style.display = "none";
+        el("enemyCenter").style.display = "none";
         return;
       }
 
@@ -237,7 +236,7 @@
       if(storedEnemy){
         enemy = storedEnemy;
         inCombat = true;
-        document.getElementById("enemyCenter").style.display = "block";
+        el("enemyCenter").style.display = "block";
         story("You return... " + enemy.name + " waits!");
         return;
       }
@@ -269,7 +268,7 @@
       storedEnemy = enemy;
 
       inCombat = true;
-      document.getElementById("enemyCenter").style.display = "block";
+      el("enemyCenter").style.display = "block";
       story("You go " + dir + "... " + enemy.name + " appears!");
     }
 
@@ -277,7 +276,7 @@
       if(!enemy){ story("Nothing to run"); return; }
       enemy = null;
       inCombat = false;
-      document.getElementById("enemyCenter").style.display = "none";
+      el("enemyCenter").style.display = "none";
       story("You fled. Return to finish the room.");
     }
 
@@ -296,4 +295,55 @@
       if(player.potions[t] <= 0){ story("No " + t); return; }
       player.hp = Math.min(player.maxhp, player.hp + healVal[t]);
       player.potions[t]--;
-      story("Used " + t + " (+
+      story("Used " + t + " ( +" + healVal[t] + ")");
+    }
+
+    function story(t){
+      el("dialogContent").innerHTML = "Level " + player.level + " - Room " + roomCount + "<br>" + t;
+    }
+
+    function updateUI(){
+      el("playerInfo").innerHTML =
+        "LVL:" + player.level +
+        "<br>EXP:" + player.exp + "/" + player.expNext +
+        "<br>HP:" + player.hp + "/" + player.maxhp +
+        "<br>GOLD:" + player.gold;
+
+      if(enemy){
+        el("enemySprite").innerText = enemy.sprite;
+        el("enemyHPText").innerText = enemy.name + " HP:" + enemy.hp + "/" + enemy.maxhp;
+      }
+
+      el("playerFill").style.width = (player.hp / player.maxhp * 100) + "%";
+      el("enemyFill").style.width = enemy ? (enemy.hp / enemy.maxhp * 100) + "%" : "0%";
+
+      el("invText").innerHTML =
+        "Small (" + healVal.small + "):" + player.potions.small +
+        "<br>Medium (" + healVal.medium + "):" + player.potions.medium +
+        "<br>Large (" + healVal.large + "):" + player.potions.large +
+        "<br>Mega (" + healVal.mega + "):" + player.potions.mega;
+    }
+
+    function die(k){
+      story("Killed by " + k);
+      player.hp = player.maxhp;
+      player.level = 1;
+      player.exp = 0;
+      player.expNext = 10;
+      player.gold = 50;
+      player.potions = { small:0, medium:0, large:0, mega:0 };
+      roomCount = 0;
+      enemy = null;
+      storedEnemy = null;
+      inCombat = false;
+      roomActive = false;
+      el("enemyCenter").style.display = "none";
+    }
+
+    // Start UI updater
+    setInterval(updateUI, 100);
+    updateUI();
+  </script>
+
+</body>
+</html>

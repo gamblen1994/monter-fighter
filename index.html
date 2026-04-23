@@ -34,11 +34,7 @@
       border:1px solid #00ff88; padding:15px;
       background:#000;
     }
-    button{
-      background:#111; color:#00ff88;
-      border:1px solid #00ff88;
-      padding:10px; margin:4px; cursor:pointer;
-    }
+    button{ background:#111; color:#00ff88; border:1px solid #00ff88; padding:10px; margin:4px; cursor:pointer; }
     .boss { color:#ff4444; font-weight:bold; }
   </style>
 </head>
@@ -92,104 +88,104 @@
   </div>
 
   <script>
-    // Helper
     const el = id => document.getElementById(id);
 
-    // Player HP scaling parameters
+    // Tuning
     const basePlayerHP = 20;
-    const hpPerLevel = 6; // how much maxhp increases per level
+    const hpPerLevel = 12;            // larger per-level HP gain
+    const earlyEasyLevels = 3;
 
-    // Boss depth scaling parameters
-    const baseBossDepth = 3;      // minimum rooms to reach before first boss
-    const bossDepthPerLevel = 1.5; // how much deeper the boss moves each level (multiplied)
+    // Boss tuning
+    const baseBossDepth = 2;          // bosses appear earlier
+    const bossDepthPerLevel = 1;      // boss depth increase per level
 
-    // Game state
-    let player = {
-      level: 1,
-      exp: 0,
-      expNext: 10,
-      hp: basePlayerHP,
-      maxhp: basePlayerHP,
-      gold: 50,
-      weapon: 0,
-      armor: 0,
-      potions: { small:0, medium:0, large:0, mega:0 }
-    };
+    let player = { level:1, exp:0, expNext:10, hp:basePlayerHP, maxhp:basePlayerHP, gold:50, weapon:0, armor:0, potions:{ small:0, medium:0, large:0, mega:0 } };
 
-    let enemy = null;
-    let storedEnemy = null;
-    let inCombat = false;
-    let roomActive = false;
-    let roomCount = 0;
+    let enemy=null, storedEnemy=null, inCombat=false, roomActive=false, roomCount=0;
 
     const healVal = { small:10, medium:20, large:30, mega:50 };
 
-    // Base enemy types
     const enemies = [
       { name:"Goblin", sprite:"👺", hp:16, dmg:3 },
       { name:"Skeleton", sprite:"💀", hp:20, dmg:4 },
       { name:"Slime", sprite:"🟢", hp:14, dmg:2 }
     ];
 
-    // Utility: recalc player max HP when leveling
-    function recalcPlayerHPOnLevelUp() {
+    function recalcPlayerHPOnLevelUp(){
       player.maxhp = basePlayerHP + (player.level - 1) * hpPerLevel;
-      // heal somewhat on level up (half the per-level amount)
-      player.hp = Math.min(player.maxhp, player.hp + Math.floor(hpPerLevel / 2));
+      // heal fully on level up so player feels stronger
+      player.hp = player.maxhp;
     }
 
-    // Scale a normal enemy based on player level
-    function scaleNormalEnemy(base) {
+    function scaleNormalEnemy(base){
       const lvl = player.level;
       let multiplier;
-      if (lvl <= 3) {
-        // keep early levels easier
-        multiplier = 1 + lvl * 0.12; // gentle increase
+      if(lvl <= earlyEasyLevels){
+        multiplier = 1 + lvl * 0.25; // still gentle but a bit stronger
       } else {
-        // faster scaling later
-        multiplier = 1 + Math.pow(lvl, 1.15) * 0.12;
+        multiplier = 1 + Math.pow(lvl, 1.25) * 0.22; // stronger growth
       }
-      const hp = Math.max(1, Math.floor(base.hp * multiplier + lvl * 2));
-      const dmg = Math.max(1, Math.floor(base.dmg * (1 + lvl * 0.08) + Math.floor(lvl * 0.5)));
-      return { name: base.name, sprite: base.sprite, hp: hp, maxhp: hp, dmg: dmg, isBoss: false };
+      // add a small random variance so not all enemies identical
+      const variance = 0.9 + Math.random() * 0.4; // 0.9-1.3
+      const hp = Math.max(1, Math.floor((base.hp * multiplier + lvl * 3) * variance));
+      const dmg = Math.max(1, Math.floor((base.dmg * (1 + lvl * 0.12) + Math.floor(lvl * 0.7)) * (0.95 + Math.random()*0.2)));
+      return { name: base.name, sprite: base.sprite, hp: hp, maxhp: hp, dmg: dmg, isBoss:false };
     }
 
-    // Create a boss scaled to current level
-    function createBoss() {
+    function createBoss(){
       const lvl = player.level;
-      // Boss becomes significantly stronger with level
-      const bossBaseHp = 40;
-      const hp = Math.floor(bossBaseHp + lvl * 18 + Math.pow(lvl, 1.3) * 6);
-      const dmg = Math.max(2, Math.floor(6 + lvl * 2.2 + Math.pow(lvl, 1.05) * 0.8));
-      const name = "Boss L" + lvl;
-      return { name: name, sprite: "👹", hp: hp, maxhp: hp, dmg: dmg, isBoss: true };
+      const bossBaseHp = 60;
+      const hp = Math.floor(bossBaseHp + lvl * 28 + Math.pow(lvl,1.3)*10);
+      const dmg = Math.max(3, Math.floor(8 + lvl*2.8 + Math.pow(lvl,1.05)*1.1));
+      const name = "Overlord L" + lvl;
+      return { name: name, sprite: "👹", hp: hp, maxhp: hp, dmg: dmg, isBoss:true };
     }
 
-    // Boss depth - the number of rooms between bosses grows with level
-    function currentBossDepth() {
-      return baseBossDepth + Math.floor(player.level * bossDepthPerLevel);
+    function currentBossDepth(){
+      return Math.max(2, baseBossDepth + Math.floor(player.level * bossDepthPerLevel));
     }
 
     // UI and shop
-    function closePanels(){
-      el("shop").style.display = "none";
-      el("inventory").style.display = "none";
-    }
+    function closePanels(){ el("shop").style.display = "none"; el("inventory").style.display = "none"; }
+    function openShop(){ if(inCombat){ story("Can't shop"); return;} closePanels(); updateShop(); el("shop").style.display = "block"; }
+    function openInventory(){ if(inCombat){ story("Can't open inventory"); return;} closePanels(); el("inventory").style.display = "block"; }
+    function updateShop(){ el("wBtn").innerText = "Weapon (" + (20 + player.weapon*10) + "g)"; el("aBtn").innerText = "Armor (" + (20 + player.armor*10) + "g)"; }
+    function spendGold(x){ if(player.gold < x){ story("Not enough gold"); return false;} player.gold -= x; updateShop(); return true; }
+    function buyWeapon(){ if(spendGold(20 + player.weapon*10)){ player.weapon++; story("Bought weapon"); updateShop(); } }
+    function buyArmor(){ if(spendGold(20 + player.armor*10)){ player.armor++; story("Bought armor"); updateShop(); } }
+    function buyPotion(t){ const cost = { small:10, medium:20, large:35, mega:60 }[t]; if(spendGold(cost)){ player.potions[t]++; story("Bought " + t);} }
 
-    function openShop(){
-      if(inCombat){ story("Can't shop"); return; }
-      closePanels();
-      updateShop();
-      el("shop").style.display = "block";
-    }
+    // combat
+    function getDamage(){ return 3 + player.weapon*2; }
+    function getDefense(){ return player.armor; }
+    function critChance(){ return Math.min(0.06 + player.level*0.01, 0.35); }
 
-    function openInventory(){
-      if(inCombat){ story("Can't open inventory"); return; }
-      closePanels();
-      el("inventory").style.display = "block";
-    }
+    function gainExp(x){ player.exp += x; while(player.exp >= player.expNext){ player.exp -= player.expNext; player.level++; player.expNext = Math.floor(player.expNext*1.45); recalcPlayerHPOnLevelUp(); story("LEVEL UP! Max HP now " + player.maxhp); } }
 
-    function updateShop(){
-      el("wBtn").innerText = "Weapon (" + (20 + player.weapon * 10) + "g)";
-      el("aBtn*](#)
-
+    function attack(){ if(!enemy){ story("No enemy"); return; } let dmg = getDamage(); let crit=false; if(Math.random() < critChance()){ dmg = Math.floor(dmg*1.6); crit=true; } enemy.hp -= dmg; let text = "You hit " + enemy.name + " for " + dmg + (crit?" CRIT!":""); if(enemy.hp <= 0){ let gold = enemy.isBoss ? (40 + player.level*6) : (12 + player.level*3); player.gold += gold; gainExp(enemy.isBoss ? (20 + player.level*3) : (6 + player.level)); if(!enemy.isBoss && Math.random() < 0.6){ let types=["small","medium","large"]; let drop = types[Math.floor(Math.random()*3)]; player.potions[drop]++; text += " | Found " + drop; } story(text + " | Killed! +" + gold + "g"); enemy = null; storedEnemy = null; inCombat = false; roomActive = false; el("enemyCenter").style.display = "none"; return; } setTimeout(()=>{ let edmg = Math.max(1, enemy.dmg - getDefense()); player.hp -= edmg; story(text + " | " + enemy.name + " hits " + edmg); if(player.hp <= 0) die(enemy.name); }, 300); }
+
+    function chooseRoom(dir){ if(inCombat){ story("Finish fight"); return;} closePanels(); if(storedEnemy){ enemy = storedEnemy; inCombat=true; el("enemyCenter").style.display = "block"; story("You return... " + enemy.name + " waits!"); return; } if(roomActive){ story("Clear room first"); return; } roomCount++; roomActive = true; // find gold
+      if(Math.random() < 0.22){ let gold = 6 + player.level*3; player.gold += gold; story("You found " + gold + " gold!"); roomActive=false; return; }
+      const bossDepth = currentBossDepth();
+      // spawn boss if reached depth OR small random chance to encounter an elite
+      if(roomCount > 0 && (roomCount % bossDepth === 0 || Math.random() < 0.06 + player.level*0.01)){ 
+        enemy = createBoss(); storedEnemy = enemy; inCombat=true; el("enemyCenter").style.display = "block"; story("You go " + dir + "... " + enemy.name + " (BOSS) appears!"); return; }
+      // normal enemy
+      let base = enemies[Math.floor(Math.random()*enemies.length)]; enemy = scaleNormalEnemy(base); storedEnemy = enemy; inCombat=true; el("enemyCenter").style.display = "block"; story("You go " + dir + "... " + enemy.name + " appears!"); }
+
+    function runAway(){ if(!enemy){ story("Nothing to run"); return;} enemy=null; inCombat=false; el("enemyCenter").style.display = "none"; story("You fled. Return to finish the room."); }
+
+    function heal(){ if(player.hp >= player.maxhp){ story("HP is full"); return; } let order=["mega","large","medium","small"]; for(let p of order){ if(player.potions[p] > 0){ usePotion(p); return; } } story("No potions"); }
+    function usePotion(t){ if(player.hp >= player.maxhp){ story("HP is full"); return; } if(player.potions[t] <= 0){ story("No " + t); return; } player.hp = Math.min(player.maxhp, player.hp + healVal[t]); player.potions[t]--; story("Used " + t + " ( +" + healVal[t] + ")"); }
+
+    function story(t){ el("dialogContent").innerHTML = "Level " + player.level + " - Room " + roomCount + "<br>" + t; }
+
+    function updateUI(){ el("playerInfo").innerHTML = "LVL:" + player.level + "<br>EXP:" + player.exp + "/" + player.expNext + "<br>HP:" + player.hp + "/" + player.maxhp + "<br>GOLD:" + player.gold; if(enemy){ if(enemy.isBoss){ el("enemySprite").innerText = enemy.sprite; el("enemyHPText").innerHTML = "<span class='boss'>" + enemy.name + " HP:" + enemy.hp + "/" + enemy.maxhp + "</span>"; } else { el("enemySprite").innerText = enemy.sprite; el("enemyHPText").innerText = enemy.name + " HP:" + enemy.hp + "/" + enemy.maxhp; } } else { el("enemySprite").innerText = ""; el("enemyHPText").innerText = ""; } el("playerFill").style.width = (player.hp / player.maxhp * 100) + "%"; el("enemyFill").style.width = enemy ? (enemy.hp / enemy.maxhp * 100) + "%" : "0%"; el("invText").innerHTML = "Small (" + healVal.small + "):" + player.potions.small + "<br>Medium (" + healVal.medium + "):" + player.potions.medium + "<br>Large (" + healVal.large + "):" + player.potions.large + "<br>Mega (" + healVal.mega + "):" + player.potions.mega; }
+
+    function die(k){ story("Killed by " + k); player.hp = player.maxhp; player.level = 1; player.exp = 0; player.expNext = 10; player.gold = 50; player.potions = { small:0, medium:0, large:0, mega:0 }; roomCount = 0; enemy=null; storedEnemy=null; inCombat=false; roomActive=false; el("enemyCenter").style.display = "none"; }
+
+    setInterval(updateUI, 100); updateUI();
+  </script>
+
+</body>
+</html>

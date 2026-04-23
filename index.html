@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Dungeon RPG</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
       --bg:#000; --accent:#00ff88; --boss:#ff6b6b; --panel-pad:14px; --btn-pad:12px;
@@ -14,25 +14,27 @@
     #playerInfo{font-size:18px;}
     #statusRow{font-size:14px; text-align:right;}
     /* Battle area */
-    #battleArea{display:flex; justify-content:center; align-items:center; gap:20px; margin-top:6px; position:relative;}
+    #battleArea{display:flex; justify-content:space-around; align-items:flex-start; gap:20px; margin-top:6px; position:relative; padding:6px;}
+    .side{display:flex; flex-direction:column; align-items:center; gap:6px; min-width:110px;}
     #playerSprite, #enemySprite { width:96px; height:96px; display:flex; justify-content:center; align-items:center; font-size:64px; position:relative; z-index:2; }
     #playerSprite img, #enemySprite img{ max-width:100%; max-height:100%; border-radius:8px; }
     #enemyCenter{display:none; text-align:center; margin:6px auto;}
-    #enemyHPText{font-size:18px;}
-    /* HP bars */
-    .hpWrapper{width:90%; max-width:420px; height:24px; border:1px solid var(--accent); background:#111; margin:8px auto; position:relative;}
-    .barFill{height:100%; background:var(--accent); width:100%; transition: width 0.12s linear;}
+    #enemyHPText{font-size:14px;}
+    /* sprite-specific HP bars */
+    .sprite-hp { width:110px; height:12px; border:1px solid var(--accent); background:#111; border-radius:6px; overflow:hidden; }
+    .sprite-fill{ height:100%; background:var(--accent); width:100%; transition:width 0.12s linear; }
+    .gear { font-size:13px; color:var(--accent); }
     /* Dialog / story */
     #dialogBox{width:94%; max-width:520px; margin:6px auto; padding:8px; border:1px solid var(--accent); font-size:16px; box-sizing:border-box;}
     /* Controls - responsive */
     #controls{width:94%; max-width:760px; margin:10px auto; padding:12px; border:1px solid var(--accent); display:flex; flex-wrap:wrap; gap:8px; justify-content:center; box-sizing:border-box;}
-    #controls button, #shop button, #inventory button{background:#111; color:var(--accent); border:1px solid var(--accent); padding:var(--btn-pad); margin:0; min-width:84px; font-size:16px; border-radius:6px; box-shadow: none; touch-action:manipulation;}
+    #controls button, #shop button, #inventory button{background:#111; color:var(--accent); border:1px solid var(--accent); padding:var(--btn-pad); margin:0; min-width:84px; font-size:16px; border-radius:6px; touch-action:manipulation;}
     .bigBtn{padding:14px 18px; font-size:18px;}
     #shop,#inventory{display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:92%; max-width:380px; padding:var(--panel-pad); border:1px solid var(--accent); background:var(--bg); z-index:40;}
     #saveControls{display:flex; gap:8px; align-items:center;}
     #saveStatus{font-size:13px; color:var(--accent); margin-left:6px;}
     .boss{color:var(--boss); font-weight:bold;}
-    #invText{font-size:15px; margin-bottom:8px;}
+    #invText{font-size:15px; margin-bottom:8px; text-align:center;}
     /* Sprite controls */
     #spriteControls{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
     #spriteOptions button{padding:6px 8px; font-size:18px;}
@@ -41,62 +43,22 @@
     .player-hit{ animation:playerHitFlash 300ms ease-in-out forwards; }
     .enemy-hit{ animation:enemyShake 260ms linear; }
     .enemy-attack{ animation:enemyLunge 300ms ease-in-out forwards; z-index:3; }
-    @keyframes playerLunge {
-      0% { transform: translateX(0) scale(1); }
-      50% { transform: translateX(18px) scale(1.05); }
-      100% { transform: translateX(0) scale(1); }
-    }
-    @keyframes enemyLunge {
-      0% { transform: translateX(0) scale(1); }
-      50% { transform: translateX(-14px) scale(1.03); }
-      100% { transform: translateX(0) scale(1); }
-    }
-    @keyframes enemyShake {
-      0% { transform: translateX(0); filter:brightness(1); }
-      20% { transform: translateX(-6px); filter:brightness(1.4); }
-      40% { transform: translateX(6px); filter:brightness(1.1); }
-      60% { transform: translateX(-4px); filter:brightness(1.3); }
-      80% { transform: translateX(4px); filter:brightness(1.05); }
-      100% { transform: translateX(0); filter:brightness(1); }
-    }
-    @keyframes playerHitFlash {
-      0% { opacity:1; transform:scale(1); }
-      50% { opacity:0.6; transform:scale(0.98); filter:brightness(0.7); }
-      100% { opacity:1; transform:scale(1); filter:brightness(1); }
-    }
+    @keyframes playerLunge { 0% { transform: translateX(0) scale(1); } 50% { transform: translateX(18px) scale(1.05); } 100% { transform: translateX(0) scale(1); } }
+    @keyframes enemyLunge { 0% { transform: translateX(0) scale(1); } 50% { transform: translateX(-14px) scale(1.03); } 100% { transform: translateX(0) scale(1); } }
+    @keyframes enemyShake { 0% { transform: translateX(0); filter:brightness(1); } 20% { transform: translateX(-6px); filter:brightness(1.4); } 40% { transform: translateX(6px); filter:brightness(1.1); } 60% { transform: translateX(-4px); filter:brightness(1.3); } 80% { transform: translateX(4px); filter:brightness(1.05); } 100% { transform: translateX(0); filter:brightness(1); } }
+    @keyframes playerHitFlash { 0% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(0.98); filter:brightness(0.7); } 100% { opacity:1; transform:scale(1); filter:brightness(1); } }
     /* Effect styles */
     .effect { position:absolute; pointer-events:none; z-index:5; }
-    .sword-swipe {
-      width:120px; height:60px; border-radius:50%; background:linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05));
-      box-shadow:0 0 20px rgba(255,255,255,0.12), inset 0 0 10px rgba(255,255,255,0.08);
-      transform-origin:center left; opacity:0.0;
-      animation:swordSwipeAnim 420ms ease-out forwards;
-    }
-    @keyframes swordSwipeAnim {
-      0% { transform: translate(0,0) rotate(-30deg) scale(0.8); opacity:0; filter:blur(3px); }
-      30% { opacity:0.9; transform: translate(10px,0) rotate(-10deg) scale(1.05); filter:blur(0px); }
-      100% { opacity:0; transform: translate(30px,0) rotate(10deg) scale(1.2); filter:blur(4px); }
-    }
-    .magic-blast {
-      width:18px; height:18px; border-radius:50%; background:radial-gradient(circle, #aaf 0%, #44f 60%, rgba(68,68,255,0.2) 100%);
-      box-shadow:0 0 16px rgba(68,136,255,0.8), 0 0 36px rgba(120,160,255,0.35);
-      transform:translate(0,0) scale(1); opacity:1;
-    }
-    .impact {
-      position:absolute; width:48px; height:48px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.1) 40%, transparent 70%); opacity:0;
-      animation:impactPop 260ms ease-out forwards;
-      pointer-events:none; z-index:6;
-    }
-    @keyframes impactPop {
-      0% { transform:scale(0.3); opacity:0.95; filter:blur(1px); }
-      60% { transform:scale(1.05); opacity:0.8; filter:blur(0px); }
-      100% { transform:scale(1.3); opacity:0; }
-    }
+    .sword-swipe { width:120px; height:60px; border-radius:50%; background:linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05)); box-shadow:0 0 20px rgba(255,255,255,0.12), inset 0 0 10px rgba(255,255,255,0.08); transform-origin:center left; opacity:0.0; animation:swordSwipeAnim 420ms ease-out forwards; }
+    @keyframes swordSwipeAnim { 0% { transform: translate(0,0) rotate(-30deg) scale(0.8); opacity:0; filter:blur(3px); } 30% { opacity:0.9; transform: translate(10px,0) rotate(-10deg) scale(1.05); filter:blur(0px); } 100% { opacity:0; transform: translate(30px,0) rotate(10deg) scale(1.2); filter:blur(4px); } }
+    .magic-blast { width:18px; height:18px; border-radius:50%; background:radial-gradient(circle, #aaf 0%, #44f 60%, rgba(68,68,255,0.2) 100%); box-shadow:0 0 16px rgba(68,136,255,0.8), 0 0 36px rgba(120,160,255,0.35); transform:translate(0,0) scale(1); opacity:1; }
+    .impact { position:absolute; width:48px; height:48px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.1) 40%, transparent 70%); opacity:0; animation:impactPop 260ms ease-out forwards; pointer-events:none; z-index:6; }
+    @keyframes impactPop { 0% { transform:scale(0.3); opacity:0.95; filter:blur(1px); } 60% { transform:scale(1.05); opacity:0.8; filter:blur(0px); } 100% { transform:scale(1.3); opacity:0; } }
     /* Responsive tweaks */
     @media (max-width:600px){
       #playerSprite, #enemySprite { width:80px; height:80px; font-size:48px; }
       #playerInfo{font-size:16px;}
-      .hpWrapper{height:20px;}
+      .sprite-hp{ width:100px; height:12px; }
       #controls button{flex:1 1 45%; min-width:120px;}
       .bigBtn{flex:1 1 100%;}
       #dialogBox{font-size:15px;}
@@ -106,7 +68,7 @@
 <body>
 
   <div id="topRow">
-    <div id="playerInfo">LVL:1<br>HP:20/20<br>GOLD:50</div>
+    <div id="playerInfo">LVL:1 &nbsp; Weapon L:0 &nbsp; Armor L:0<br>HP:20/20 &nbsp; GOLD:50</div>
     <div id="statusRow">
       <div id="spriteControls">
         <div id="spriteOptions">
@@ -128,15 +90,21 @@
   </div>
 
   <div id="battleArea">
-    <div id="playerSprite" aria-hidden="true"></div>
-    <div id="enemyCenter">
-      <div id="enemySprite"></div>
-      <div id="enemyHPText"></div>
+    <div class="side" id="playerSide">
+      <div id="playerSprite" aria-hidden="true"></div>
+      <div class="gear" id="playerGear">W:0 • A:0</div>
+      <div class="sprite-hp" id="playerSpriteHP"><div class="sprite-fill" id="playerSpriteFill"></div></div>
+    </div>
+
+    <div class="side" id="enemySide">
+      <div id="enemyCenter">
+        <div id="enemySprite"></div>
+        <div id="enemyHPText"></div>
+      </div>
+      <div style="height:6px"></div>
+      <div class="sprite-hp" id="enemySpriteHP"><div class="sprite-fill" id="enemySpriteFill"></div></div>
     </div>
   </div>
-
-  <div id="playerHPBar" class="hpWrapper"><div id="playerFill" class="barFill"></div></div>
-  <div id="enemyHPBar" class="hpWrapper"><div id="enemyFill" class="barFill"></div></div>
 
   <div id="dialogBox">
     <b>📖 STORY</b>
@@ -187,6 +155,9 @@
     const bossDepthPerLevel = 0.6;
     const extraBossChance = 0.02;
 
+    // combatStamp to avoid stale callbacks affecting new enemies
+    let combatStamp = 0;
+
     // Game state (includes sprite fields)
     let player = {
       level: 1, exp:0, expNext:10,
@@ -215,6 +186,9 @@
     const enemySpriteEl = el('enemySprite');
     const enemyCenterEl = el('enemyCenter');
     const battleAreaEl = el('battleArea');
+    const playerFillEl = el('playerSpriteFill');
+    const enemyFillEl = el('enemySpriteFill');
+    const playerGearEl = el('playerGear');
 
     // Sprite upload handling
     el('spriteUpload').addEventListener('change', async (ev)=>{
@@ -271,7 +245,7 @@
     function saveGame(showStatus = true){
       try{
         const data = {
-          player, enemy, storedEnemy, inCombat, roomActive, roomCount
+          player, enemy, storedEnemy, inCombat, roomActive, roomCount, combatStamp
         };
         localStorage.setItem(SAVE_KEY, JSON.stringify(data));
         if(showStatus) showSaveStatus('Saved');
@@ -296,6 +270,14 @@
         inCombat = !!data.inCombat;
         roomActive = !!data.roomActive;
         roomCount = data.roomCount || 0;
+        combatStamp = data.combatStamp || 0;
+        // Ensure HP values are within bounds
+        player.hp = Math.max(0, Math.min(player.hp || player.maxhp, player.maxhp || basePlayerHP));
+        if(enemy){
+          enemy.hp = Math.max(0, enemy.hp);
+          // if enemy hp is 0 or less, clear it
+          if(enemy.hp <= 0){ enemy = null; storedEnemy = null; inCombat = false; roomActive = false; }
+        }
         showSaveStatus('Loaded');
         updateUI();
         return true;
@@ -333,29 +315,44 @@
     function getDefense(){ return player.armor; }
     function critChance(){ return Math.min(0.06 + player.level * 0.01, 0.38); }
 
+    // central enemy-death handler
+    function handleEnemyDeath(textPrefix){
+      // clear enemy and storedEnemy and flags
+      enemy = null;
+      storedEnemy = null;
+      inCombat = false;
+      roomActive = false;
+      enemyCenterEl.style.display = 'none';
+      // update UI and save
+      updateUI();
+      saveGame(false);
+      if(textPrefix) story(textPrefix);
+    }
+
     function attack(){
       if(!enemy){ story('No enemy'); return; }
+      const localStamp = combatStamp; // capture current combat instance
       const dmgBase = getDamage();
       let dmg = dmgBase;
       let crit = false;
       if(Math.random() < critChance()){ dmg = Math.floor(dmg * 1.6); crit = true; }
 
-      // decide effect: weapon level >=2 => sword-swipe, otherwise magic-blast
       const useSword = player.weapon >= 2;
-
-      // trigger player animation and effect
       triggerPlayerAttack();
       if(useSword) spawnSwordSwipeOnEnemy();
       else spawnMagicBlast();
 
-      // apply damage mid-animation
+      // apply damage mid-animation (only if enemy still same combat)
       setTimeout(()=>{
-        enemy.hp -= dmg;
+        if(!enemy || enemy.combatStamp !== localStamp) return;
+        enemy.hp = Math.max(0, enemy.hp - dmg);
         let text = "You hit " + enemy.name + " for " + dmg + (crit ? " CRIT!" : "");
-        // enemy visual feedback
         triggerEnemyHit();
         spawnImpactOnEnemy();
+
         if(enemy.hp <= 0){
+          // ensure hp clamped
+          enemy.hp = 0;
           const gold = enemy.isBoss ? (50 + player.level * 8) : (14 + player.level * 4);
           player.gold += gold;
           gainExp(enemy.isBoss ? (30 + player.level * 4) : (8 + player.level * 2));
@@ -366,9 +363,8 @@
             text += ' | Found ' + drop;
           }
           story(text + ' | Killed! +' + gold + 'g');
-          enemy = null; storedEnemy = null; inCombat=false; roomActive=false; enemyCenterEl.style.display='none';
-          updateUI();
-          saveGame(false);
+          // finalize death
+          handleEnemyDeath();
           return;
         } else {
           story(text);
@@ -376,14 +372,14 @@
         }
       }, 180);
 
-      // enemy counterattack after animation if still alive
+      // enemy counterattack after animation if still alive and same combat
       setTimeout(()=>{
-        if(!enemy) return;
-        // enemy anim + player feedback
+        if(!enemy || enemy.combatStamp !== localStamp) return;
         triggerEnemyAttack();
         setTimeout(()=>{
+          if(!enemy || enemy.combatStamp !== localStamp) return;
           const edmg = Math.max(1, enemy.dmg - getDefense());
-          player.hp -= edmg;
+          player.hp = Math.max(0, player.hp - edmg);
           story(enemy.name + " hits " + edmg);
           if(player.hp <= 0) die(enemy.name);
           updateUI();
@@ -418,22 +414,23 @@
 
     // Visual effects: sword swipe at enemy
     function spawnSwordSwipeOnEnemy(){
+      if(!enemy) return;
+      combatStamp = combatStamp; // no-op to show we use same stamp
       const areaRect = battleAreaEl.getBoundingClientRect();
       const enemyRect = enemySpriteEl.getBoundingClientRect();
-      // position effect centered vertically at enemy, slightly left
       const effect = document.createElement('div');
       effect.className = 'effect sword-swipe';
-      const left = (enemyRect.left - areaRect.left) - 40; // offset left
+      const left = (enemyRect.left - areaRect.left) - 40;
       const top = (enemyRect.top - areaRect.top) + (enemyRect.height/2) - 30;
       effect.style.left = left + 'px';
       effect.style.top = top + 'px';
       battleAreaEl.appendChild(effect);
-      // cleanup
-      setTimeout(()=>{ try{ effect.remove(); }catch(e){} }, 550);
+      setTimeout(()=>{ try{ effect.remove(); }catch(e){} }, 600);
     }
 
     // Magic blast: projectile from player to enemy
     function spawnMagicBlast(){
+      if(!enemy) return;
       const areaRect = battleAreaEl.getBoundingClientRect();
       const playerRect = playerSpriteEl.getBoundingClientRect();
       const enemyRect = enemySpriteEl.getBoundingClientRect();
@@ -452,7 +449,6 @@
       const dx = endX - startX;
       const dy = endY - startY;
 
-      // animate using WAAPI
       const anim = blast.animate([
         { transform: 'translate(0px,0px)', opacity: 1 },
         { transform: `translate(${dx}px, ${dy}px) scale(0.9)`, opacity: 0.85 }
@@ -469,16 +465,16 @@
     }
 
     function spawnImpactAt(centerX, centerY){
-      // centerX/Y are relative to battleArea
       const impact = document.createElement('div');
       impact.className = 'impact';
       impact.style.left = centerX - 24 + 'px';
       impact.style.top = centerY - 24 + 'px';
       battleAreaEl.appendChild(impact);
-      setTimeout(()=>{ try{ impact.remove(); }catch(e){} }, 400);
+      setTimeout(()=>{ try{ impact.remove(); }catch(e){} }, 420);
     }
 
     function spawnImpactOnEnemy(){
+      if(!enemy) return;
       const areaRect = battleAreaEl.getBoundingClientRect();
       const enemyRect = enemySpriteEl.getBoundingClientRect();
       const centerX = (enemyRect.left - areaRect.left) + enemyRect.width/2;
@@ -499,10 +495,16 @@
       const bossDepth = currentBossDepth();
       const bossChance = extraBossChance + Math.min(0.12, player.level * 0.01);
       if((roomCount % bossDepth === 0) || Math.random() < bossChance){
-        enemy = createBoss(); storedEnemy = enemy; inCombat=true; enemyCenterEl.style.display='block'; story('You go ' + dir + '... ' + enemy.name + ' (BOSS) appears!'); updateUI(); saveGame(false); return;
+        enemy = createBoss(); incrementCombatStampFor(enemy); storedEnemy = enemy; inCombat=true; enemyCenterEl.style.display='block'; story('You go ' + dir + '... ' + enemy.name + ' (BOSS) appears!'); updateUI(); saveGame(false); return;
       }
       let base = enemies[Math.floor(Math.random() * enemies.length)];
-      enemy = scaleNormalEnemy(base); storedEnemy = enemy; inCombat = true; enemyCenterEl.style.display = 'block'; story('You go ' + dir + '... ' + enemy.name + ' appears!'); updateUI(); saveGame(false);
+      enemy = scaleNormalEnemy(base); incrementCombatStampFor(enemy); storedEnemy = enemy; inCombat = true; enemyCenterEl.style.display = 'block'; story('You go ' + dir + '... ' + enemy.name + ' appears!'); updateUI(); saveGame(false);
+    }
+
+    // Stamp helper
+    function incrementCombatStampFor(e){
+      combatStamp++;
+      if(e) e.combatStamp = combatStamp;
     }
 
     function runAway(){ if(!enemy){ story('Nothing to run'); return; } enemy=null; inCombat=false; enemyCenterEl.style.display='none'; story('You fled. Return to finish the room.'); updateUI(); saveGame(false); }
@@ -514,14 +516,18 @@
     /* ---------------- UI ---------------- */
     function story(t){ el('dialogContent').innerHTML = 'Level ' + player.level + ' - Room ' + roomCount + '<br>' + t; }
     function updateUI(){
-      el('playerInfo').innerHTML = 'LVL:' + player.level + ' &nbsp; Weapon L:' + player.weapon + ' &nbsp; Armor L:' + player.armor + '<br>HP:' + player.hp + '/' + player.maxhp + '<br>GOLD:' + player.gold;
+      el('playerInfo').innerHTML = 'LVL:' + player.level + ' &nbsp; Weapon L:' + player.weapon + ' &nbsp; Armor L:' + player.armor + '<br>HP:' + player.hp + '/' + player.maxhp + ' &nbsp; GOLD:' + player.gold;
       // render player sprite (image if uploaded else emoji)
       if(player.spriteImg){
         playerSpriteEl.innerHTML = '<img src="'+player.spriteImg+'" alt="player">';
       } else {
         playerSpriteEl.textContent = player.spriteEmoji || '🧙';
       }
+      // gear under player
+      playerGearEl.textContent = 'Weapon L:' + player.weapon + ' • Armor L:' + player.armor;
       if(enemy){
+        // ensure enemy hp never negative
+        enemy.hp = Math.max(0, enemy.hp);
         enemySpriteEl.style.fontSize = enemy.isBoss ? '72px' : '64px';
         enemySpriteEl.innerHTML = enemy.sprite && enemy.sprite.startsWith('data:') ? '<img src="'+enemy.sprite+'" alt="enemy">' : enemy.sprite;
         if(enemy.isBoss) el('enemyHPText').innerHTML = '<span class="boss">' + enemy.name + ' HP:' + enemy.hp + '/' + enemy.maxhp + '</span>';
@@ -530,10 +536,11 @@
       } else {
         enemySpriteEl.innerText = ''; el('enemyHPText').innerText = ''; enemyCenterEl.style.display = 'none';
       }
-      el('playerFill').style.width = (player.hp / player.maxhp * 100) + '%';
-      el('enemyFill').style.width = enemy ? (enemy.hp / enemy.maxhp * 100) + '%' : '0%';
+      // update sprite bars (avoid division by zero)
+      playerFillEl.style.width = (player.maxhp > 0 ? (player.hp / player.maxhp * 100) : 0) + '%';
+      enemyFillEl.style.width = enemy ? (enemy.maxhp > 0 ? (enemy.hp / enemy.maxhp * 100) : 0) + '%' : '0%';
       el('invText').innerHTML = 'Small ('+healVal.small+'):' + player.potions.small + '<br>Medium ('+healVal.medium+'):' + player.potions.medium + '<br>Large ('+healVal.large+'):' + player.potions.large + '<br>Mega ('+healVal.mega+'):' + player.potions.mega;
-      updateShop(); // reflect levels in shop buttons
+      updateShop();
     }
 
     function die(k){

@@ -1,886 +1,881 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Dungeon RPG — Character Select & Attacks</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{
-      --bg:#000; --accent:#00ff88; --boss:#ff6b6b; --panel-pad:14px; --btn-pad:12px;
-      --font-mono: "Courier New", Courier, monospace;
-      --muted: #66ffb3;
-    }
-    html,body{height:100%; margin:0; background:var(--bg); color:var(--accent); font-family:var(--font-mono); -webkit-tap-highlight-color: transparent;}
-    #topRow{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px;}
-    #playerInfo{font-size:18px;}
-    #statusRow{font-size:14px; text-align:right;}
-    /* Battle area */
-    #battleArea{display:flex; justify-content:space-around; align-items:flex-start; gap:20px; margin-top:6px; position:relative; padding:6px;}
-    .side{display:flex; flex-direction:column; align-items:center; gap:6px; min-width:110px;}
-    #playerSprite, #enemySprite { width:96px; height:96px; display:flex; justify-content:center; align-items:center; font-size:64px; position:relative; z-index:2; }
-    #playerSprite img, #enemySprite img{ max-width:100%; max-height:100%; border-radius:8px; }
-    #enemyCenter{display:none; text-align:center; margin:6px auto;}
-    #enemyHPText{font-size:14px;}
-    /* sprite-specific HP bars */
-    .sprite-hp { width:110px; height:12px; border:1px solid var(--accent); background:#111; border-radius:6px; overflow:hidden; }
-    .sprite-fill{ height:100%; background:var(--accent); width:100%; transition:width 0.12s linear; }
-    .gear { font-size:13px; color:var(--muted); }
-    /* Dialog / story */
-    #dialogBox{width:94%; max-width:520px; margin:6px auto; padding:8px; border:1px solid var(--accent); font-size:16px; box-sizing:border-box; min-height:70px;}
-    /* Controls - responsive */
-    #controls{width:94%; max-width:760px; margin:10px auto; padding:12px; border:1px solid var(--accent); display:flex; flex-wrap:wrap; gap:8px; justify-content:center; box-sizing:border-box;}
-    #controls button, #shop button, #inventory button{background:#111; color:var(--accent); border:1px solid var(--accent); padding:var(--btn-pad); margin:0; min-width:84px; font-size:16px; border-radius:6px; touch-action:manipulation;}
-    .bigBtn{padding:14px 18px; font-size:18px;}
-    #shop,#inventory{display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:92%; max-width:420px; padding:var(--panel-pad); border:1px solid var(--accent); background:var(--bg); z-index:100;}
-    #saveControls{display:flex; gap:8px; align-items:center;}
-    #saveStatus{font-size:13px; color:var(--accent); margin-left:6px;}
-    .boss{color:var(--boss); font-weight:bold;}
-    #invText{font-size:15px; margin-bottom:8px; text-align:center;}
-    /* Sprite controls */
-    #spriteControls{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
-    #spriteOptions button{padding:6px 8px; font-size:18px;}
-    /* Animations */
-    .player-attack{ animation:playerLunge 300ms ease-in-out forwards; z-index:3; }
-    .player-hit{ animation:playerHitFlash 300ms ease-in-out forwards; }
-    .enemy-hit{ animation:enemyShake 260ms linear; }
-    .enemy-attack{ animation:enemyLunge 300ms ease-in-out forwards; z-index:3; }
-    @keyframes playerLunge { 0% { transform: translateX(0) scale(1); } 50% { transform: translateX(18px) scale(1.05); } 100% { transform: translateX(0) scale(1); } }
-    @keyframes enemyLunge { 0% { transform: translateX(0) scale(1); } 50% { transform: translateX(-14px) scale(1.03); } 100% { transform: translateX(0) scale(1); } }
-    @keyframes enemyShake { 0% { transform: translateX(0); filter:brightness(1); } 20% { transform: translateX(-6px); filter:brightness(1.4); } 40% { transform: translateX(6px); filter:brightness(1.1); } 60% { transform: translateX(-4px); filter:brightness(1.3); } 80% { transform: translateX(4px); filter:brightness(1.05); } 100% { transform: translateX(0); filter:brightness(1); } }
-    @keyframes playerHitFlash { 0% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(0.98); filter:brightness(0.7); } 100% { opacity:1; transform:scale(1); filter:brightness(1); } }
-    /* Effect styles */
-    .effect { position:absolute; pointer-events:none; z-index:60; }
-    .sword-swipe { width:120px; height:60px; border-radius:50%; background:linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05)); box-shadow:0 0 20px rgba(255,255,255,0.12), inset 0 0 10px rgba(255,255,255,0.08); transform-origin:center left; opacity:0.0; animation:swordSwipeAnim 420ms ease-out forwards; }
-    @keyframes swordSwipeAnim { 0% { transform: translate(0,0) rotate(-30deg) scale(0.8); opacity:0; filter:blur(3px); } 30% { opacity:0.9; transform: translate(10px,0) rotate(-10deg) scale(1.05); filter:blur(0px); } 100% { opacity:0; transform: translate(30px,0) rotate(10deg) scale(1.2); filter:blur(4px); } }
-    .magic-blast { width:18px; height:18px; border-radius:50%; background:radial-gradient(circle, #aaf 0%, #44f 60%, rgba(68,68,255,0.2) 100%); box-shadow:0 0 16px rgba(68,136,255,0.8), 0 0 36px rgba(120,160,255,0.35); transform:translate(0,0) scale(1); opacity:1; }
-    .ice-shard { width:18px; height:30px; background:linear-gradient(#cfefff,#9fdfff); transform:rotate(15deg); border-radius:3px; box-shadow:0 0 12px rgba(180,230,255,0.7); }
-    .poison-cloud { width:70px; height:40px; border-radius:20px; background:radial-gradient(circle at 20% 30%, rgba(120,255,80,0.85), rgba(30,160,40,0.5)); filter:blur(2px); opacity:0.0; animation:poisonPuff 700ms ease-out forwards; }
-    @keyframes poisonPuff { 0% { transform:scale(0.6); opacity:0.0; } 30% { opacity:0.95; transform:scale(1.05); } 100% { opacity:0; transform:scale(1.4); } }
-    .burn-flame { width:14px; height:28px; background:linear-gradient(#ffb86b, #ff4b1a); border-radius:6px; box-shadow:0 0 16px rgba(255,120,30,0.8); transform:translateY(0); }
-    .impact { position:absolute; width:48px; height:48px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.1) 40%, transparent 70%); opacity:0; animation:impactPop 260ms ease-out forwards; pointer-events:none; z-index:62; }
-    @keyframes impactPop { 0% { transform:scale(0.3); opacity:0.95; filter:blur(1px); } 60% { transform:scale(1.05); opacity:0.8; filter:blur(0px); } 100% { transform:scale(1.3); opacity:0; } }
-    /* Status icons (top-right of target) */
-    .status-icon { position:absolute; width:20px; height:20px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#000; z-index:70; }
-    .status-burn { background: linear-gradient(#ffb86b,#ff4b1a); }
-    .status-poison { background: linear-gradient(#a8ff7a,#3fb33f); }
-    .status-freeze { background: linear-gradient(#cfefff,#9fdfff); }
-    .status-bleed { background: linear-gradient(#ff9aa2,#ff4a5a); }
-    .status-shock { background: linear-gradient(#fff79a,#ffd64d); }
-    /* Modal */
-    .modal { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#0a0a0a; border:1px solid var(--accent); padding:12px; z-index:200; max-width:94%; width:760px; display:none; color:var(--accent); }
-    .modal h3{ margin:4px 0 8px 0; font-size:18px; }
-    .modal .grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:380px; overflow:auto; padding:6px; }
-    .attack-card { border:1px solid var(--accent); padding:8px; font-size:14px; background:#040404; border-radius:6px; cursor:pointer; }
-    .attack-card small{ color:var(--muted); display:block; margin-top:6px; font-size:12px; }
-    .learn-row{ display:flex; gap:8px; margin-top:8px; justify-content:flex-end; }
-    .muted{ color:var(--muted); font-size:13px; }
-    .char-list{ display:flex; gap:8px; }
-    .char-card{ border:1px solid var(--accent); padding:8px; border-radius:6px; background:#050505; cursor:pointer; width:calc(25% - 8px); box-sizing:border-box; }
-    .char-card h4{ margin:4px 0; }
-    .attack-breakdown{ max-height:240px; overflow:auto; border-top:1px dashed #224; margin-top:8px; padding-top:8px; }
-    /* Responsive */
-    @media (max-width:760px){
-      .modal{ width:94%; }
-      .modal .grid{ grid-template-columns:repeat(2,1fr); }
-    }
-    @media (max-width:600px){
-      #playerSprite, #enemySprite { width:80px; height:80px; font-size:48px; }
-      #playerInfo{font-size:16px;}
-      .sprite-hp{ width:100px; height:12px; }
-      #controls button{flex:1 1 45%; min-width:120px;}
-      .bigBtn{flex:1 1 100%;}
-      #dialogBox{font-size:15px;}
-    }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Crypts & Contracts — Dungeon RPG</title>
+<style>
+  :root{
+    --bg:#0a0a0b; --panel:#071521; --accent:#7be495; --muted:#9bdcbc; --danger:#ff7b7b;
+    --gold:#ffd166; --rare:#8ecae6; --epic:#c77dff;
+    --font: "Courier New", Courier, monospace;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#05060a,#071521);color:var(--accent);font-family:var(--font);-webkit-font-smoothing:antialiased;}
+  .app{max-width:980px;margin:12px auto;padding:10px;box-sizing:border-box;}
+  header{display:flex;justify-content:space-between;align-items:center;}
+  .logo{font-weight:800;font-size:24px;line-height:1;color:var(--gold);letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,0.6);}
+  .sub{font-size:12px;color:var(--muted)}
+  .top-controls{display:flex;gap:8px;align-items:center;}
+  button{background:#071521;border:1px solid rgba(123,228,149,0.06);color:var(--accent);padding:8px 10px;border-radius:8px;cursor:pointer}
+  button.action{background:linear-gradient(90deg,#27e3a1,#37d7c8);color:#032a22;font-weight:700}
+  button.warn{background:linear-gradient(90deg,#ffb3b3,#ff7b7b);color:#3b0000}
+  #mainArea{margin-top:12px;display:flex;gap:12px;}
+  #leftPanel{flex:1;min-width:320px}
+  #rightPanel{width:340px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(123,228,149,0.04);padding:12px;border-radius:10px}
+  /* HUD */
+  #hud{display:flex;gap:8px;align-items:center;justify-content:space-between}
+  #playerBox{display:flex;gap:12px;align-items:center}
+  .avatar{width:70px;height:70px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:36px;background:#05121a;border:1px solid rgba(123,228,149,0.03)}
+  .playerStats{font-size:14px}
+  .small{font-size:12px;color:var(--muted)}
+  /* Dungeon visuals */
+  #scene{height:280px;margin-top:10px;position:relative;overflow:hidden;border-radius:10px;background-image:linear-gradient(180deg,#09121a,#041018);border:1px solid rgba(255,255,255,0.03)}
+  .entrance{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .tunnel{height:100%;display:flex;align-items:center;justify-content:space-between;padding:20px}
+  .tunnel .path{width:40%;height:80%;background:linear-gradient(180deg,#111,#060606);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .tunnel .path:after{content:'';position:absolute;bottom:0;height:40%;width:100%;background:linear-gradient(180deg,transparent,#000);opacity:0.2}
+  .character-walk{transition:left 700ms linear, top 700ms linear}
+  /* Battle area (center) */
+  #battle{display:flex;align-items:center;justify-content:space-around;height:100%}
+  .side{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .sprite{width:110px;height:110px;border-radius:8px;background:#071a16;display:flex;align-items:center;justify-content:center;font-size:64px;border:1px solid rgba(123,228,149,0.04);position:relative}
+  .hp{width:140px;height:14px;background:#0a0a0a;border:1px solid rgba(123,228,149,0.06);border-radius:8px;overflow:hidden}
+  .hp .fill{height:100%;background:linear-gradient(90deg,#27e3a1,#37d7c8);width:100%;transition:width 120ms linear}
+  .gearline{font-size:13px;color:var(--muted)}
+  /* Dialog / story */
+  #dialog{margin-top:10px;min-height:60px}
+  /* Controls */
+  #controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  /* Attack modal (2x2 grid) */
+  .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#061216;border:1px solid rgba(123,228,149,0.06);padding:12px;z-index:500;border-radius:10px;display:none}
+  .modal .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:380px}
+  .attack-card{background:#07121a;border:1px solid rgba(123,228,149,0.04);padding:10px;border-radius:8px;cursor:pointer}
+  .attack-card h4{margin:0;font-size:13px}
+  .attack-meta{font-size:12px;color:var(--muted)}
+  /* status icons */
+  .status-dot{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .status-burn{background:linear-gradient(#ffb86b,#ff4b1a)}
+  .status-poison{background:linear-gradient(#a8ff7a,#3fb33f)}
+  .status-freeze{background:linear-gradient(#cfefff,#9fdfff)}
+  .status-bleed{background:linear-gradient(#ff9aa2,#ff4a5a)}
+  .status-shock{background:linear-gradient(#fff79a,#ffd64d)}
+  /* effects */
+  .effect{position:absolute;pointer-events:none;z-index:400}
+  /* inventory/shop list */
+  .list{max-height:280px;overflow:auto}
+  .item{display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed rgba(255,255,255,0.02);padding:6px 0}
+  .rarity-common{color:#cfcfcf} .rarity-uncommon{color:#9fd37b} .rarity-rare{color:#8ecae6} .rarity-epic{color:#c77dff} .rarity-legend{color:#ffd166}
+  /* title screen */
+  #titleScreen{position:fixed;left:0;top:0;right:0;bottom:0;background:linear-gradient(180deg,#03040a,#051018);display:flex;align-items:center;justify-content:center;z-index:600}
+  .title-card{background:linear-gradient(180deg,#07121a,#061018);padding:24px;border-radius:12px;border:1px solid rgba(123,228,149,0.05);text-align:center;width:92%;max-width:720px}
+  .title-logo{font-size:44px;color:var(--gold);font-weight:900;letter-spacing:2px;margin-bottom:6px}
+  .title-sub{color:var(--muted);margin-bottom:18px}
+  .btn-row{display:flex;gap:8px;justify-content:center}
+  /* walking animation */
+  @keyframes walk-left { 0%{transform:translateX(0)} 50%{transform:translateX(-8px)} 100%{transform:translateX(0)} }
+  @keyframes walk-right { 0%{transform:translateX(0)} 50%{transform:translateX(8px)} 100%{transform:translateX(0)} }
+  /* small */
+  .muted{color:var(--muted);font-size:12px}
+</style>
 </head>
 <body>
+<div class="app">
+  <header>
+    <div>
+      <div class="logo">Crypts & Contracts</div>
+      <div class="sub">A lightweight dungeon roguelite — D20 rolls, status effects, weapons, hospital & bandits</div>
+    </div>
+    <div class="top-controls">
+      <button onclick="openAttackRef()">Attacks</button>
+      <button onclick="openShop()">Shop</button>
+      <button id="saveBtn">Save</button>
+      <button id="loadBtn">Load</button>
+      <button id="resetBtn" class="warn">Reset</button>
+    </div>
+  </header>
 
-  <div id="topRow">
-    <div id="playerInfo">LVL:1 &nbsp; HP:20/20 &nbsp; GOLD:50</div>
-    <div id="statusRow">
-      <div id="spriteControls">
-        <div id="spriteOptions" style="display:inline-block;">
-          <button onclick="openCharacterModal()">Change Character</button>
+  <div id="mainArea">
+    <div id="leftPanel">
+      <div id="hud" class="card">
+        <div id="playerBox">
+          <div class="avatar" id="avatar">🧙</div>
+          <div class="playerStats">
+            <div id="playerName">Name: Adventurer</div>
+            <div class="small" id="playerClass">Class: Mage</div>
+          </div>
         </div>
-        <input id="spriteUpload" type="file" accept="image/*" style="display:none" />
-        <button onclick="document.getElementById('spriteUpload').click()">Upload</button>
-        <div id="saveControls" style="display:inline-block;">
-          <button id="saveBtn">Save</button>
-          <button id="loadBtn">Load</button>
-          <button id="resetBtn">Reset</button>
-          <div id="saveStatus"></div>
+        <div>
+          <div class="small">Save status: <span id="saveStatus"></span></div>
+        </div>
+      </div>
+
+      <div id="scene" class="card">
+        <!-- We'll swap scene contents dynamically (title/dungeon/tunnel/battle) -->
+      </div>
+
+      <div id="dialog" class="card">
+        <div id="dialogContent">Welcome — use Start to begin your adventure.</div>
+      </div>
+
+      <div id="controls" class="card">
+        <div id="actionControls">
+          <button onclick="enterDungeon()" class="action">Enter</button>
+          <button onclick="openAttackModal()">ATTACK</button>
+          <button onclick="openInventory()">INVENTORY</button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="battleArea">
-    <div class="side" id="playerSide">
-      <div id="playerSprite" aria-hidden="true"></div>
-      <div class="gear" id="playerGear">W:0 • A:0</div>
-      <div class="sprite-hp" id="playerSpriteHP"><div class="sprite-fill" id="playerSpriteFill"></div></div>
-    </div>
-
-    <div class="side" id="enemySide">
-      <div id="enemyCenter">
-        <div id="enemySprite"></div>
-        <div id="enemyHPText"></div>
+    <div id="rightPanel">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">Player</div>
+          <div class="muted">EXP under player</div>
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:10px">
+          <div style="flex:0 0 110px">
+            <div class="sprite" id="hudSprite">🧙</div>
+          </div>
+          <div style="flex:1">
+            <div id="hudInfo">LVL 1 • HP 20/20</div>
+            <div class="small" id="hudExp">EXP: 0/10</div>
+            <div class="gearline" id="hudGear">Weapon: None • Armor: None</div>
+          </div>
+        </div>
       </div>
-      <div style="height:6px"></div>
-      <div class="sprite-hp" id="enemySpriteHP"><div class="sprite-fill" id="enemySpriteFill"></div></div>
-    </div>
-  </div>
 
-  <div id="dialogBox">
-    <b>📖 STORY</b>
-    <div id="dialogContent">Level 1 - Room 0<br>Weapon L:0 • Armor L:0 • EXP:0/10</div>
-  </div>
+      <div style="height:12px"></div>
 
-  <div id="controls">
-    <button class="bigBtn" onclick="chooseRoom('left')">⬅️ LEFT</button>
-    <button class="bigBtn" onclick="chooseRoom('right')">➡️ RIGHT</button>
-    <button onclick="openAttackModal()">ATTACK</button>
-    <button onclick="runAway()">RUN</button>
-    <button onclick="heal()">HEAL</button>
-    <button onclick="openShop()">SHOP</button>
-    <button onclick="openInventory()">INVENTORY</button>
-  </div>
-
-  <div id="shop">
-    <h3>SHOP</h3>
-    <button id="wBtn" onclick="buyWeapon()"></button>
-    <button id="aBtn" onclick="buyArmor()"></button><br><br>
-    <button onclick="buyPotion('small')">Small (10g)</button>
-    <button onclick="buyPotion('medium')">Medium (20g)</button>
-    <button onclick="buyPotion('large')">Large (35g)</button>
-    <button onclick="buyPotion('mega')">Mega (60g)</button><br><br>
-    <div style="text-align:right;"><button onclick="closePanels()">Exit</button></div>
-  </div>
-
-  <div id="inventory">
-    <h3>INVENTORY</h3>
-    <div id="invText"></div><br>
-    <button onclick="usePotion('small')">Use Small</button>
-    <button onclick="usePotion('medium')">Use Medium</button>
-    <button onclick="usePotion('large')">Use Large</button>
-    <button onclick="usePotion('mega')">Use Mega</button><br><br>
-    <div style="text-align:right;"><button onclick="closePanels()">Exit</button></div>
-  </div>
-
-  <!-- Attack selection modal -->
-  <div id="attackModal" class="modal">
-    <h3>Select Attack (equipped are first shown)</h3>
-    <div id="attackGrid" class="grid"></div>
-    <div style="text-align:right; margin-top:10px;"><button onclick="closeAttackModal()">Cancel</button></div>
-  </div>
-
-  <!-- Learn/Replace modal -->
-  <div id="learnModal" class="modal">
-    <h3>Learn New Attack</h3>
-    <div id="learnDesc" class="muted"></div>
-    <div id="learnGrid" class="grid"></div>
-    <div class="learn-row">
-      <button onclick="closeLearnModal()">Skip</button>
-    </div>
-  </div>
-
-  <!-- Replace chooser -->
-  <div id="replaceModal" class="modal">
-    <h3>Choose attack to replace</h3>
-    <div id="replaceGrid" class="grid"></div>
-    <div style="text-align:right; margin-top:8px;"><button onclick="closeReplaceModal()">Cancel</button></div>
-  </div>
-
-  <!-- Character selection modal -->
-  <div id="charModal" class="modal">
-    <h3>Choose Your Character</h3>
-    <div style="display:flex; gap:12px;">
-      <div class="char-card" onclick="previewCharacter('🧙')">
-        <h4>🧙 Mage</h4>
-        <div class="muted">Master of elements and arcane magic. Uses spells to burn/freeze/poison enemies.</div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">Shop / Retrieval</div>
+          <div class="muted">Items scale to your level</div>
+        </div>
+        <div style="margin-top:8px">
+          <div class="muted">Retrievals:</div>
+          <div id="retrievalList" class="list"></div>
+        </div>
       </div>
-      <div class="char-card" onclick="previewCharacter('🗡️')">
-        <h4>🗡️ Fighter</h4>
-        <div class="muted">Close-combat specialist. Strong physicals and bleeding attacks.</div>
-      </div>
-      <div class="char-card" onclick="previewCharacter('🧝')">
-        <h4>🧝 Ranger</h4>
-        <div class="muted">Balanced range & traps; bleeding, poison and wind techniques.</div>
-      </div>
-      <div class="char-card" onclick="previewCharacter('🧑‍🚀')">
-        <h4>🧑‍🚀 Tech</h4>
-        <div class="muted">Gadgets, shock and arcane-tech attacks; utility & status control.</div>
+
+      <div style="height:12px"></div>
+
+      <div class="card">
+        <div style="font-weight:700">Inventory</div>
+        <div id="invList" class="list"></div>
       </div>
     </div>
+  </div>
+</div>
 
-    <div id="charPreview" style="margin-top:10px;">
-      <h4 id="charName">Select a character</h4>
-      <div id="charDesc" class="muted">Click a character to see details.</div>
-      <div style="margin-top:8px;"><strong>Strengths:</strong> <span id="charStrong" class="muted"></span></div>
-      <div style="margin-top:4px;"><strong>Weaknesses:</strong> <span id="charWeak" class="muted"></span></div>
-      <div style="margin-top:8px;"><strong>Attacks by level:</strong></div>
-      <div id="charAttacks" class="attack-breakdown"></div>
-    </div>
+<!-- Attack modal (2x2) -->
+<div id="attackModal" class="modal">
+  <h3>Choose Attack (2x2)</h3>
+  <div class="grid" id="attackGrid"></div>
+  <div style="text-align:right;margin-top:8px"><button onclick="closeAttackModal()">Close</button></div>
+</div>
 
-    <div style="text-align:right; margin-top:10px;">
-      <button onclick="applyCharacterSelection()">Start with this character</button>
+<!-- Learn modal -->
+<div id="learnModal" class="modal">
+  <h3>Learn New Attack</h3>
+  <div id="learnDesc" class="muted"></div>
+  <div id="learnGrid" class="grid"></div>
+  <div style="text-align:right;margin-top:8px"><button onclick="closeLearnModal()">Skip</button></div>
+</div>
+
+<!-- Replace modal -->
+<div id="replaceModal" class="modal">
+  <h3>Replace Attack</h3>
+  <div id="replaceGrid" class="grid"></div>
+  <div style="text-align:right;margin-top:8px"><button onclick="closeReplaceModal()">Cancel</button></div>
+</div>
+
+<!-- Character modal -->
+<div id="charModal" class="modal">
+  <h3>Choose Your Character</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div class="char-card" onclick="previewChar('mage')"><h4>🧙 Mage</h4><div class="muted">Elemental damage, many status effects</div></div>
+    <div class="char-card" onclick="previewChar('fighter')"><h4>🗡️ Fighter</h4><div class="muted">Physical powerhouse, bleeds & strong weapons</div></div>
+    <div class="char-card" onclick="previewChar('ranger')"><h4>🧝 Ranger</h4><div class="muted">Poison & ranged tricks</div></div>
+    <div class="char-card" onclick="previewChar('tech')"><h4>🧑‍🚀 Tech</h4><div class="muted">Shocks, stuns & gadgets</div></div>
+  </div>
+  <div style="margin-top:8px">
+    <div id="charPreviewArea"></div>
+  </div>
+  <div style="text-align:right;margin-top:8px"><button onclick="confirmCharacter()">Select</button></div>
+</div>
+
+<!-- Attack reference modal -->
+<div id="attackRefModal" class="modal">
+  <h3>Attack Reference (Class-only)</h3>
+  <div id="attackRefGrid" class="grid" style="grid-template-columns:repeat(2,1fr);width:720px;max-height:420px;overflow:auto"></div>
+  <div style="text-align:right;margin-top:8px"><button onclick="closeAttackRef()">Close</button></div>
+</div>
+
+<!-- Title / Start Screen -->
+<div id="titleScreen">
+  <div class="title-card">
+    <div class="title-logo">CRYPTS & CONTRACTS</div>
+    <div class="title-sub">A D20-based dungeon experience — choose wisely, adventurer</div>
+    <div style="margin-top:18px" class="btn-row">
+      <button id="startBtn" class="action">Start</button>
+      <button id="continueBtn">Continue</button>
     </div>
   </div>
+</div>
 
-  <!-- Attack reference modal (full list grouped by level for current class) -->
-  <div id="attackRefModal" class="modal">
-    <h3>Attack Reference</h3>
-    <div id="attackRefGrid" class="grid"></div>
-    <div style="text-align:right; margin-top:8px;"><button onclick="closeAttackRef()">Close</button></div>
-  </div>
+<script>
+/* ---- Core Data & Helpers ---- */
+const SAVE_KEY = 'crypts_contracts_save_v1';
+const classes = ['mage','fighter','ranger','tech'];
+const CLASS_META = {
+  mage: {emoji:'🧙', name:'Mage', strengths:'Spells & status', weaknesses:'Low armor'},
+  fighter: {emoji:'🗡️', name:'Fighter', strengths:'High physical damage', weaknesses:'Limited utility'},
+  ranger: {emoji:'🧝', name:'Ranger', strengths:'Poison & range', weaknesses:'Medium HP'},
+  tech: {emoji:'🧑‍🚀', name:'Tech', strengths:'Stuns & utility', weaknesses:'Balanced stats'}
+};
+const RARITIES = ['common','uncommon','rare','epic','legendary'];
+const RARITY_MULT = {common:1,uncommon:1.25,rare:1.6,epic:2.2,legendary:3.2};
+function rnd(n){ return Math.floor(Math.random()*n); }
+function rollD20(){ return 1 + Math.floor(Math.random()*20); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function fmt(n){ return Math.round(n); }
+function now(){ return Date.now(); }
 
-  <script>
-    // Helper & save key
-    const el = id => document.getElementById(id);
-    const SAVE_KEY = 'dungeon_rpg_save_v1';
-
-    // Tuning
-    const basePlayerHP = 20;
-    const hpPerLevel = 12;
-    const earlyEasyLevels = 3;
-    const baseBossDepth = 3;
-    const bossDepthPerLevel = 0.6;
-    const extraBossChance = 0.02;
-
-    // combatStamp to avoid stale callbacks
-    let combatStamp = 0;
-
-    // Attack template generator
-    const ELEMENTS = ['physical','fire','ice','poison','bleed','shock','wind','arcane','earth','holy'];
-    const STATUS_BY_ELEMENT = {
-      fire: {kind:'burn', duration:3, tick:3, recovery:0.2, icon:'🔥'},
-      ice: {kind:'freeze', duration:1, tick:0, recovery:0.25, icon:'❄️'},
-      poison: {kind:'poison', duration:4, tick:2, recovery:0.18, icon:'☠️'},
-      bleed: {kind:'bleed', duration:3, tick:2, recovery:0.2, icon:'🩸'},
-      shock: {kind:'shock', duration:2, tick:0, recovery:0.22, icon:'⚡'}
-    };
-
-    const CLASS_BY_EMOJI = {
-      '🧙':'mage',
-      '🗡️':'fighter',
-      '🧝':'ranger',
-      '🧑‍🚀':'tech'
-    };
-
-    // Character profiles (description, strengths, weaknesses)
-    const CLASS_PROFILES = {
-      mage: {
-        name: 'Mage',
-        desc: 'Elemental and arcane master. High ranged damage and status utility (burn, freeze, poison).',
-        strengths: 'Strong spell damage, many status effects, crowd control.',
-        weaknesses: 'Lower physical defense and short melee range.'
-      },
-      fighter: {
-        name: 'Fighter',
-        desc: 'Frontline melee warrior. High physical damage and bleed effects; durable.',
-        strengths: 'High straight damage, bleed, robust HP scaling.',
-        weaknesses: 'Less status control and limited ranged options.'
-      },
-      ranger: {
-        name: 'Ranger',
-        desc: 'Versatile ranged specialist. Mix of poison, bleed and wind attacks with traps.',
-        strengths: 'Good single-target pressure, utility and evasion.',
-        weaknesses: 'Medium durability; relies on positioning.'
-      },
-      tech: {
-        name: 'Tech',
-        desc: 'Gadgeteer using shock/arcane-tech. Stuns, debuffs, and hybrid damage.',
-        strengths: 'High utility with stuns/shocks, flexible attacks.',
-        weaknesses: 'Balanced stats but fewer raw-damage burst spells.'
+/* ---- Generate 60 unique attacks per class (one per level 1..60) ---- */
+const ATTACKS_BY_CLASS = {};
+function generateClassAttacks(){
+  const elementsByClass = {
+    mage: ['arcane','fire','ice','wind','earth','holy'],
+    fighter: ['physical','bleed','wind','earth'],
+    ranger: ['physical','poison','wind','bleed'],
+    tech: ['shock','arcane','physical']
+  };
+  classes.forEach(cls=>{
+    ATTACKS_BY_CLASS[cls] = [];
+    for(let lvl=1; lvl<=60; lvl++){
+      const elem = elementsByClass[cls][(lvl-1)%elementsByClass[cls].length];
+      const name = `${cls.toUpperCase().charAt(0)+cls.slice(1)} ${elem.charAt(0).toUpperCase()+elem.slice(1)} ${lvl}`;
+      // damage base roughly linear with level
+      const base = Math.round(6 + lvl * (1.2 + Math.random()*0.6));
+      // required die threshold: higher level attacks tend to require higher roll
+      const threshold = clamp(4 + Math.floor(lvl * 0.28 + (Math.random()*3)), 2, 19);
+      // status assignment: some element types have statuses
+      let status = null;
+      if(['fire','ice','poison','bleed','shock'].includes(elem)){
+        const map = {fire:{kind:'burn',duration:3,tick:Math.max(1,Math.round(base*0.12)),rec:0.18},
+                     ice:{kind:'freeze',duration:1,tick:0,rec:0.25},
+                     poison:{kind:'poison',duration:4,tick:Math.max(1,Math.round(base*0.08)),rec:0.16},
+                     bleed:{kind:'bleed',duration:3,tick:Math.max(1,Math.round(base*0.1)),rec:0.2},
+                     shock:{kind:'shock',duration:2,tick:0,rec:0.22}};
+        status = map[elem];
       }
-    };
-
-    // Generate ~60 attacks programmatically
-    function generateAttacks(){
-      const attacks = [];
-      let id = 1;
-      for(let i=1;i<=60;i++){
-        const elem = ELEMENTS[(i-1) % ELEMENTS.length];
-        const lvl = Math.max(1, Math.ceil(i/2)); // roughly every 2 levels
-        const base = Math.round(6 + i * 0.9);
-        // classes - rotate so each class gets coverage
-        const cls = [];
-        if(i%4 !== 0) cls.push('mage');
-        if(i%4 !== 1) cls.push('fighter');
-        if(i%4 !== 2) cls.push('ranger');
-        if(i%4 !== 3) cls.push('tech');
-        // status mapping
-        const status = STATUS_BY_ELEMENT[elem] ? {
-          kind: STATUS_BY_ELEMENT[elem].kind,
-          duration: STATUS_BY_ELEMENT[elem].duration,
-          tick: STATUS_BY_ELEMENT[elem].tick,
-          recovery: STATUS_BY_ELEMENT[elem].recovery
-        } : null;
-        const chance = status ? Math.min(0.85, 0.35 + (i%5)*0.07) : 0;
-        const aoe = (i%11 === 0);
-        const attack = {
-          id: 'atk' + String(id).padStart(3,'0'),
-          name: (status ? status.kind.charAt(0).toUpperCase()+status.kind.slice(1) : elem.charAt(0).toUpperCase()+elem.slice(1)) + ' ' + (aoe ? 'Wave ' : 'Strike ') + i,
-          lvlRequirement: lvl,
-          classes: cls,
-          dmg: base,
-          element: elem,
-          status: status,
-          statusChance: chance,
-          aoe: aoe,
-          desc: `${elem.charAt(0).toUpperCase()+elem.slice(1)} attack. Damage ${base}${status ? ', may apply '+status.kind : ''}${aoe ? ' (AOE)' : ''}`
-        };
-        attacks.push(attack);
-        id++;
-      }
-      return attacks;
+      const att = {
+        id: `${cls}_atk_${String(lvl).padStart(2,'0')}`,
+        name,
+        level:lvl,
+        element: elem,
+        dmg: base,
+        threshold,
+        status,
+        statusChance: status ? clamp(0.25 + lvl*0.006 + Math.random()*0.15,0.2,0.85) : 0,
+        desc: `${elem.charAt(0).toUpperCase()+elem.slice(1)} attack. Damage ${base}${status? ', may apply '+status.kind : ''}`
+      };
+      ATTACKS_BY_CLASS[cls].push(att);
     }
+  });
+}
+generateClassAttacks();
 
-    const ATTACKS = generateAttacks();
+/* ---- Items (weapons & armors) ---- */
+function makeItem(type, level){
+  const rarityIndex = clamp(Math.floor((level-1)/12 + rnd(2)),0,4); // more likely to be common early
+  const rarity = RARITIES[rarityIndex];
+  const mult = RARITY_MULT[rarity];
+  const power = Math.round((2 + level*0.9) * mult + rnd(Math.max(1,Math.floor(level*0.6))));
+  const name = `${rarity.charAt(0).toUpperCase()+rarity.slice(1)} ${type==='weapon'?'Blade':'Mail'} L${level}`;
+  const emoji = type==='weapon' ? ( ['🗡️','⚔️','🔪','🪓'][rnd(4)] ) : ( ['🛡️','🥋','🧥'][rnd(3)] );
+  return { id: `${type}_${level}_${Math.random().toString(36).slice(2,8)}`, type, name, emoji, levelReq: level, power, rarity, retrieval:false };
+}
 
-    // Game state
-    let player = {
-      level: 1, exp:0, expNext:10,
-      hp: basePlayerHP, maxhp: basePlayerHP,
-      gold:50, weapon:0, armor:0,
-      potions:{ small:0, medium:0, large:0, mega:0 },
-      spriteEmoji: null,
-      spriteImg: null,
-      knownAttacks: [],
-      attackSlots: []
-    };
+/* ---- Game state ---- */
+let state = {
+  player:{
+    name:'You',
+    cls:'mage',
+    emoji:'🧙',
+    level:1, exp:0, expNext:10, hp:20, maxhp:20,
+    gold:60, weapon:null, armor:null, potions:{small:0,medium:0,large:0,mega:0},
+    known:[], slots:[], inventory:[], statuses:[]
+  },
+  roomCount:0,
+  enemy:null,
+  storedEnemy:null,
+  inCombat:false,
+  retrievals:[], // items in shop retrieval {item,unlockAt,fee}
+  shopItems:[], // current shop items
+  savedAt:0
+};
 
-    let enemy = null;
-    let storedEnemy = null;
-    let inCombat = false;
-    let roomActive = false;
-    let roomCount = 0;
+/* ---- Utilities: saving/loading ---- */
+function saveGame(show=true){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    if(show) showMsg('Saved');
+    return true;
+  }catch(e){ showMsg('Save failed'); return false; }
+}
+function loadGame(){
+  const raw = localStorage.getItem(SAVE_KEY);
+  if(!raw) return false;
+  try{ state = JSON.parse(raw); state.player.known = state.player.known || []; state.player.slots = state.player.slots || []; updateUI(); return true; }catch(e){ return false; }
+}
+function resetGame(){
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+}
 
-    const healVal = { small:10, medium:20, large:30, mega:50 };
-    const enemiesBase = [
-      { name:"Goblin", sprite:"👺", hp:16, dmg:3 },
-      { name:"Skeleton", sprite:"💀", hp:20, dmg:4 },
-      { name:"Slime", sprite:"🟢", hp:14, dmg:2 }
-    ];
+/* ---- UI helpers ---- */
+const scene = document.getElementById('scene');
+const dialogContent = document.getElementById('dialogContent');
+const avatar = document.getElementById('avatar');
+const hudSprite = document.getElementById('hudSprite');
+const hudInfo = document.getElementById('hudInfo');
+const hudExp = document.getElementById('hudExp');
+const hudGear = document.getElementById('hudGear');
+const invList = document.getElementById('invList');
+const retrievalList = document.getElementById('retrievalList');
+const attackModal = document.getElementById('attackModal');
+const attackGrid = document.getElementById('attackGrid');
+const titleScreen = document.getElementById('titleScreen');
+const charModal = document.getElementById('charModal');
+const charPreviewArea = document.getElementById('charPreviewArea');
+const attackRefModal = document.getElementById('attackRefModal');
+const attackRefGrid = document.getElementById('attackRefGrid');
 
-    // UI refs
-    const playerSpriteEl = el('playerSprite');
-    const enemySpriteEl = el('enemySprite');
-    const enemyCenterEl = el('enemyCenter');
-    const battleAreaEl = el('battleArea');
-    const playerFillEl = el('playerSpriteFill');
-    const enemyFillEl = el('enemySpriteFill');
-    const playerGearEl = el('playerGear');
+function showMsg(t){ dialogContent.innerHTML = t; }
+function updateUI(){
+  // player HUD
+  avatar.textContent = state.player.emoji;
+  hudSprite.textContent = state.player.emoji;
+  hudInfo.textContent = `LVL ${state.player.level} • HP ${state.player.hp}/${state.player.maxhp}`;
+  hudExp.textContent = `EXP: ${state.player.exp}/${state.player.expNext}`;
+  hudGear.textContent = `Weapon: ${ state.player.weapon ? state.player.weapon.name : 'None' } • Armor: ${ state.player.armor ? state.player.armor.name : 'None' } • Gold: ${state.player.gold}`;
+  // inventory
+  invList.innerHTML = '';
+  state.player.inventory.forEach((it,i)=>{
+    const div = document.createElement('div'); div.className='item';
+    div.innerHTML = `<div>${it.emoji} <strong class="rarity-${it.rarity}">${it.name}</strong> <div class="muted">Lv${it.levelReq} • ${it.type} • P:${it.power}</div></div>
+      <div><button onclick="equipItem('${it.id}')">Equip</button> <button onclick="dropItem('${it.id}')">Drop</button></div>`;
+    invList.appendChild(div);
+  });
+  // retrievals
+  retrievalList.innerHTML = '';
+  state.retrievals.forEach((r,idx)=>{
+    const unlock = Math.max(0, Math.ceil((r.unlockAt - now())/1000));
+    const div = document.createElement('div'); div.className='item';
+    div.innerHTML = `<div>${r.item.emoji} <strong class="rarity-${r.item.rarity}">${r.item.name}</strong> <div class="muted">Retrieval fee: ${r.fee} • unlocks in ${unlock}s</div></div>
+      <div><button onclick="attemptRetrieve(${idx})" ${unlock>0?'disabled':''}>Retrieve</button></div>`;
+    retrievalList.appendChild(div);
+  });
+  // scene content if in battle show enemy etc
+  renderScene();
+}
 
-    // Save/load
-    function saveGame(showStatus = true){
-      try{
-        const data = { player, enemy, storedEnemy, inCombat, roomActive, roomCount, combatStamp };
-        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-        if(showStatus) showSaveStatus('Saved');
-        return true;
-      }catch(e){
-        showSaveStatus('Save failed');
-        return false;
-      }
+/* ---- Character selection flow ---- */
+function previewChar(cls){
+  const meta = CLASS_META[cls];
+  charPreviewArea.innerHTML = `<div style="display:flex;gap:10px;align-items:center"><div style="font-size:44px">${meta.emoji}</div><div><strong>${meta.name}</strong><div class="muted">${meta.desc||''}</div></div></div>
+    <div style="margin-top:8px"><strong>Strengths:</strong> ${meta.strengths||''}<br><strong>Weaknesses:</strong> ${meta.weaknesses||''}</div>
+    <div style="margin-top:8px"><strong>Attacks by level (sample 1..10):</strong></div>
+    <div class="muted">${ATTACKS_BY_CLASS[cls].slice(0,10).map(a=>`L${a.level}: ${a.name}`).join('<br>')}</div>`;
+  charModal.dataset.preview = cls;
+}
+function confirmCharacter(){
+  const cls = charModal.dataset.preview || 'mage';
+  state.player.cls = cls;
+  state.player.emoji = CLASS_META[cls].emoji;
+  state.player.level = 1; state.player.exp = 0; state.player.expNext = 10;
+  state.player.hp = 20; state.player.maxhp = 20; state.player.gold = 60;
+  state.player.weapon = null; state.player.armor = null; state.player.inventory = []; state.player.known = []; state.player.slots = [];
+  // give starter attacks unique to class: levels 1..4
+  const starters = ATTACKS_BY_CLASS[cls].slice(0,4).map(a=>a.id);
+  state.player.known = starters.slice();
+  state.player.slots = starters.slice();
+  charModal.style.display = 'none';
+  showTitle(false);
+  renderEntrance();
+  saveGame(false);
+  updateUI();
+}
+
+/* ---- Title / start screen ---- */
+function showTitle(show=true){
+  titleScreen.style.display = show ? 'flex' : 'none';
+}
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  // show start menu Continue/New Game
+  const has = localStorage.getItem(SAVE_KEY);
+  const cont = document.getElementById('continueBtn');
+  cont.style.display = has ? 'inline-block' : 'none';
+  // keep title visible and let user pick
+});
+document.getElementById('continueBtn').addEventListener('click', ()=>{
+  if(loadGame()){ showTitle(false); updateUI(); renderEntrance(); } else alert('No save found');
+});
+/* New Game opens char modal */
+document.getElementById('startBtn').addEventListener('dblclick', ()=>{ /* not used */ });
+document.getElementById('startBtn').addEventListener('click', ()=>{
+  // ask new or continue
+  const has = localStorage.getItem(SAVE_KEY);
+  if(has){
+    if(confirm('Continue existing save? OK = Continue, Cancel = New Game')){
+      if(loadGame()){ showTitle(false); updateUI(); renderEntrance(); return; }
     }
+  }
+  // New game
+  previewChar('mage'); charModal.style.display='block';
+});
 
-    function loadGame(confirmOverwrite = true){
-      const raw = localStorage.getItem(SAVE_KEY);
-      if(!raw){ showSaveStatus('No save'); return false; }
-      if(confirmOverwrite){ if(!confirm('Load saved game and overwrite current progress?')) return false; }
-      try{
-        const data = JSON.parse(raw);
-        if(data.player) player = data.player;
-        enemy = data.enemy;
-        storedEnemy = data.storedEnemy;
-        inCombat = !!data.inCombat;
-        roomActive = !!data.roomActive;
-        roomCount = data.roomCount || 0;
-        combatStamp = data.combatStamp || 0;
-        if(!player.knownAttacks) player.knownAttacks = [];
-        if(!player.attackSlots) player.attackSlots = [];
-        showSaveStatus('Loaded');
-        updateUI();
-        return true;
-      }catch(e){
-        showSaveStatus('Load failed');
-        return false;
-      }
+/* ---- Dungeon visuals ---- */
+function renderEntrance(){
+  scene.innerHTML = `<div class="entrance">
+    <div style="font-size:22px;color:var(--gold);font-weight:800">Dungeon Entrance</div>
+    <div class="muted">Level ${state.player.level} • Room ${state.roomCount}</div>
+    <div><button onclick="enterRoomScene()" class="action">Enter the Dungeon</button></div>
+  </div>`;
+  showMsg(`Level ${state.player.level} - Room ${state.roomCount}. Enter to continue.`);
+}
+function enterRoomScene(){
+  // show fork with left/right paths and enter button removed — must choose left/right where character walks
+  scene.innerHTML = `<div class="tunnel">
+    <div class="path" id="pathLeft"><div class="muted">Left Tunnel</div></div>
+    <div style="width:16px"></div>
+    <div class="path" id="pathRight"><div class="muted">Right Tunnel</div></div>
+  </div>`;
+  // add click listeners
+  document.getElementById('pathLeft').onclick = ()=> choosePath('left');
+  document.getElementById('pathRight').onclick = ()=> choosePath('right');
+  showMsg('Choose a tunnel: Left or Right. You will face whatever lurks within.');
+}
+function choosePath(dir){
+  // animate character walking to selected side then spawn enemy
+  const left = document.getElementById('pathLeft');
+  const right = document.getElementById('pathRight');
+  left.style.opacity=dir==='left'?1:0.6; right.style.opacity=dir==='right'?1:0.6;
+  // show a walking avatar overlay
+  const walker = document.createElement('div'); walker.className='character-walk'; walker.style.position='absolute'; walker.style.bottom='18px'; walker.style.left= dir==='left' ? '18%' : '62%'; walker.style.transition='left 850ms linear, bottom 600ms linear';
+  walker.style.fontSize='44px'; walker.textContent = state.player.emoji;
+  scene.appendChild(walker);
+  setTimeout(()=> {
+    // walking effect
+    walker.style.left = dir==='left'? '20%': '68%';
+    walker.style.bottom = '20px';
+  },20);
+  setTimeout(()=> {
+    walker.remove();
+    // spawn enemy in battle view
+    spawnEnemyAndStart();
+  },900);
+}
+
+/* ---- Enemy spawn & combat ---- */
+function spawnEnemyAndStart(){
+  state.roomCount++;
+  // deterministic scaling
+  const lvl = state.player.level;
+  const base = ['Goblin','Skeleton','Slime','Bandit'][Math.floor(Math.random()*4)];
+  const hp = Math.round(12 + lvl*4 + Math.random()*6);
+  const dmg = Math.round(2 + lvl*1.2 + Math.random()*2);
+  const enemyObj = { name: base, sprite: base==='Goblin'?'👺': base==='Skeleton'?'💀': base==='Slime'?'🟢':'🏴‍☠️', hp, maxhp:hp, dmg, level: lvl, statuses: [] };
+  incrementCombatStampFor(enemyObj);
+  state.enemy = enemyObj; state.storedEnemy = enemyObj; state.inCombat = true;
+  renderBattle();
+  showMsg(`A ${enemyObj.name} appears! Prepare to fight.`);
+  saveGame(false);
+}
+function renderBattle(){
+  if(!state.enemy){
+    renderEntrance();
+    return;
+  }
+  const e = state.enemy;
+  scene.innerHTML = `<div id="battle"><div class="side">
+      <div class="sprite" id="playerSpriteSmall">${state.player.emoji}</div>
+      <div class="hp"><div class="fill" id="playerFill" style="width:${(state.player.hp/state.player.maxhp*100)}%"></div></div>
+      <div class="gearline">Weapon: ${state.player.weapon?state.player.weapon.name:'None'}</div>
+    </div>
+    <div style="width:20px"></div>
+    <div class="side">
+      <div class="sprite" id="enemySpriteSmall">${e.sprite}</div>
+      <div class="hp"><div class="fill" id="enemyFill" style="width:${(e.hp/e.maxhp*100)}%"></div></div>
+      <div class="gearline">${e.name} • L${e.level}</div>
+    </div></div>`;
+}
+function incrementCombatStampFor(e){ combatStamp++; if(e) e.combatStamp = combatStamp; }
+
+/* ---- Attack modal (2x2) + D20 checks ---- */
+function openAttackModal(){
+  if(!state.inCombat || !state.enemy){ showMsg('No enemy to attack'); return; }
+  attackGrid.innerHTML = '';
+  // ensure 4 slots
+  while(state.player.slots.length < 4){
+    const candidate = state.player.known.find(id=>!state.player.slots.includes(id));
+    if(!candidate) break;
+    state.player.slots.push(candidate);
+  }
+  for(let i=0;i<4;i++){
+    const id = state.player.slots[i];
+    const card = document.createElement('div'); card.className='attack-card';
+    if(id){
+      // find attack in class pool
+      const att = ATTACKS_BY_CLASS[state.player.cls].find(a=>a.id===id);
+      card.innerHTML = `<h4>${att.name}</h4><div class="attack-meta">Lvl ${att.level} • ${att.element} • DMG ${att.dmg}</div><div class="muted">${att.desc}</div><div style="margin-top:6px" class="muted">Req d20 ≥ ${att.threshold}</div>`;
+      card.onclick = ()=> attemptAttack(att);
+    } else {
+      card.innerHTML = `<h4>Empty</h4><div class="muted">No attack equipped</div>`;
     }
+    attackGrid.appendChild(card);
+  }
+  attackModal.style.display = 'block';
+}
+function closeAttackModal(){ attackModal.style.display = 'none'; }
 
-    function clearSave(){ if(!confirm('Clear saved game from local storage?')) return; localStorage.removeItem(SAVE_KEY); showSaveStatus('Save cleared'); }
-
-    let saveTimer = null;
-    function showSaveStatus(text){
-      el('saveStatus').innerText = text;
-      if(saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(()=>{ el('saveStatus').innerText = ''; }, 2500);
+/* attemptAttack uses D20 for permission, hit and crit */
+function attemptAttack(att){
+  attackModal.style.display='none';
+  if(!state.enemy) return;
+  const d = rollD20();
+  const threshold = att.threshold;
+  showMsg(`You rolled d20 → ${d} for ${att.name} (need ≥ ${threshold} to use).`);
+  // if roll < threshold fail to use (fumble or wasted turn)
+  if(d < threshold){
+    // possible fumble on 1
+    if(d===1){
+      showMsg(`Fumble! You failed to use ${att.name} and stumble. Enemy strikes!`);
+    } else {
+      showMsg(`You couldn't muster the technique (${d} < ${threshold}). Enemy strikes!`);
     }
-
-    // Ensure initial attacks for chosen class
-    function ensureInitialAttacks(){
-      if(player.knownAttacks && player.knownAttacks.length > 0) return;
-      const cls = CLASS_BY_EMOJI[player.spriteEmoji] || 'mage';
-      // pick 4 lowest-level attacks available to this class
-      const starters = ATTACKS.filter(a => a.lvlRequirement <= 1 && a.classes.includes(cls)).slice(0,4);
-      if(starters.length === 0){
-        // fallback choose some low-level attacks for class
-        const fallback = ATTACKS.filter(a=>a.classes.includes(cls)).slice(0,4);
-        player.knownAttacks = fallback.map(a=>a.id);
-        player.attackSlots = fallback.map(a=>a.id).slice(0,4);
-      } else {
-        player.knownAttacks = starters.map(a=>a.id);
-        player.attackSlots = starters.map(a=>a.id).slice(0,4);
-      }
+    // enemy gets to attack
+    setTimeout(()=> enemyTurn(), 650);
+    return;
+  }
+  // attack allowed — determine hit roll vs enemy
+  const hitRoll = rollD20();
+  const hitTarget = 7 + Math.floor(state.player.level * 0.2); // base chance threshold to hit, adjust by die
+  const hitSuccess = (hitRoll + Math.floor(d/5)) >= hitTarget; // d influences hit
+  const crit = hitRoll >= 19 || d >= 20; // high rolls -> crit
+  // Visuals per attack.element
+  animateAttack(att.element, false);
+  if(!hitSuccess){
+    showMsg(`You used ${att.name} (d${d}), but it missed (roll ${hitRoll}).`);
+  } else {
+    // Successful hit
+    let dmg = Math.max(1, Math.round(att.dmg + state.player.level*0.5 + (state.player.weapon?state.player.weapon.power*0.2:0)));
+    if(crit) { dmg = Math.round(dmg*1.6); showMsg(`CRITICAL ${att.name}! You deal ${dmg} damage.`); } else showMsg(`${att.name} hits for ${dmg} damage.`);
+    state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+    if(att.status && Math.random() < att.statusChance){
+      applyStatusTo(state.enemy, att.status);
+      showMsg(`Applied ${att.status.kind} to ${state.enemy.name}.`);
     }
-
-    // Attack lookup
-    function getAttackById(id){ return ATTACKS.find(a=>a.id===id); }
-
-    // UI & shop
-    function closePanels(){ el('shop').style.display = 'none'; el('inventory').style.display = 'none'; }
-    function openShop(){ if(inCombat){ story("Can't shop"); return; } closePanels(); updateShop(); el('shop').style.display='block'; }
-    function openInventory(){ if(inCombat){ story("Can't open inventory"); return; } closePanels(); el('inventory').style.display='block'; }
-    function updateShop(){ el('wBtn').innerText = 'Buy Weapon L' + (player.weapon+1) + ' (' + (20 + player.weapon*10) + 'g)'; el('aBtn').innerText = 'Buy Armor L' + (player.armor+1) + ' (' + (20 + player.armor*10) + 'g)'; }
-    function spendGold(x){ if(player.gold < x){ story("Not enough gold"); return false; } player.gold -= x; updateShop(); return true; }
-    function buyWeapon(){ if(spendGold(20 + player.weapon*10)){ player.weapon++; story('Bought weapon L' + player.weapon); updateShop(); saveGame(false); } }
-    function buyArmor(){ if(spendGold(20 + player.armor*10)){ player.armor++; story('Bought armor L' + player.armor); updateShop(); saveGame(false); } }
-    function buyPotion(t){ const cost = { small:10, medium:20, large:35, mega:60 }[t]; if(spendGold(cost)){ player.potions[t]++; story('Bought ' + t); saveGame(false); } }
-
-    // Damage/defense/crit
-    function getDamage(){ return 4 + player.weapon * 2; }
-    function getDefense(){ return player.armor; }
-    function critChance(){ return Math.min(0.06 + player.level * 0.01, 0.38); }
-
-    // Status functions
-    function applyStatusTo(entity, statusDef){
-      if(!statusDef) return;
-      entity.statuses = entity.statuses || [];
-      const existing = entity.statuses.find(s => s.type === statusDef.kind);
-      if(existing){
-        existing.remaining = Math.max(existing.remaining, statusDef.duration);
-      } else {
-        entity.statuses.push({ type: statusDef.kind, remaining: statusDef.duration, tick: statusDef.tick, recovery: statusDef.recovery });
-      }
+    if(state.enemy.hp <= 0){
+      // enemy dead
+      enemyDefeated(att);
+      saveGame(false);
+      return;
     }
+  }
+  // after player action, status ticks on enemy, then enemy turn
+  setTimeout(()=>{
+    processStatusesOn(state.enemy, true);
+    if(state.enemy && state.enemy.hp<=0){ enemyDefeated(att); return; }
+    updateUI();
+    setTimeout(()=> enemyTurn(), 420);
+  }, 420);
+}
 
-    function processStatusesOn(entity, isEnemy){
-      if(!entity || !entity.statuses) return;
-      for(let s of [...entity.statuses]){
-        if(s.tick && s.remaining > 0){
-          entity.hp = Math.max(0, entity.hp - s.tick);
-          spawnStatusTickEffect(entity, s.type, isEnemy);
-        }
-        s.remaining--;
-        if(Math.random() < (s.recovery || 0.12)){
-          s.remaining = 0;
-        }
-        if(s.remaining <= 0){
-          entity.statuses = entity.statuses.filter(x=>x !== s);
-        }
-      }
+/* Enemy turn: rolls D20 to attack */
+function enemyTurn(){
+  if(!state.enemy) return;
+  // enemy may be frozen or stunned or skip due to status
+  if(enemyHasStatus(state.enemy,'freeze')){ showMsg(`${state.enemy.name} is frozen and can't act!`); return; }
+  // choose enemy attack (simple physical)
+  const d = rollD20();
+  const hitThreshold = 8 + Math.floor(state.enemy.level*0.25);
+  const attackName = d>18 ? 'Fierce Strike' : (d>12 ? 'Strike' : 'Jab');
+  // determine if hits
+  const hit = d + Math.floor(state.enemy.level*0.2) >= hitThreshold;
+  const crit = d >= 19;
+  animateAttack('physical', true);
+  if(!hit){ showMsg(`${state.enemy.name} rolled ${d} and missed you.`); } else {
+    let dmg = Math.max(1, Math.round(state.enemy.dmg + state.enemy.level*0.3 - (state.player.armor?state.player.armor.power*0.15:0)));
+    if(crit) dmg = Math.round(dmg*1.5);
+    state.player.hp = Math.max(0, state.player.hp - dmg);
+    showMsg(`${state.enemy.name} uses ${attackName} and deals ${dmg} damage${crit?' (CRIT)':''}.`);
+    processStatusesOn(state.player, false);
+    if(state.player.hp <= 0){ playerDeath(); return; }
+  }
+  updateUI();
+}
+
+/* enemy defeated */
+function enemyDefeated(att){
+  const gold = 8 + Math.round(state.player.level*4 + Math.random()*8);
+  showMsg(`${state.enemy.name} defeated! You gain ${gold} gold and EXP.`);
+  state.player.gold += gold;
+  gainExp(Math.round(6 + state.enemy.level*1.5));
+  // chance to find item
+  if(Math.random() < 0.35){
+    const found = makeItem(Math.random()<0.6?'weapon':'armor', Math.max(1,state.player.level + (Math.random()<0.5?-1:1)));
+    state.player.inventory.push(found);
+    showMsg(`You found ${found.emoji} ${found.name}!`);
+  }
+  state.enemy = null; state.inCombat=false; state.storedEnemy = null;
+  updateUI(); saveGame(false);
+}
+
+/* ---- Status and tick processing ---- */
+function processStatusesOn(entity, isEnemy){ // earlier defined but duplicated for clarity
+  if(!entity || !entity.statuses) return;
+  for(let s of [...entity.statuses]){
+    if(s.tick && s.remaining > 0){
+      entity.hp = Math.max(0, entity.hp - s.tick);
+      spawnStatusTickEffect(s.type, entity, isEnemy);
     }
+    s.remaining--;
+    if(Math.random() < (s.recovery||0.12)){ s.remaining = 0; }
+    if(s.remaining <= 0){ entity.statuses = entity.statuses.filter(x=>x!==s); }
+  }
+}
 
-    function enemyHasStatus(e, type){ if(!e || !e.statuses) return false; return e.statuses.some(s => s.type===type); }
+/* spawn status tick visuals */
+function spawnStatusTickEffect(type, entity, isEnemy){
+  const elTarget = isEnemy ? document.getElementById('enemySpriteSmall') : document.getElementById('playerSpriteSmall');
+  if(!elTarget) return;
+  const areaRect = scene.getBoundingClientRect();
+  const targetRect = elTarget.getBoundingClientRect();
+  const x = targetRect.left - areaRect.left + targetRect.width/2;
+  const y = targetRect.top - areaRect.top + 10;
+  if(type==='burn'){
+    const f = document.createElement('div'); f.className='effect'; f.style.left=(x-7)+'px'; f.style.top=(y-10)+'px'; f.innerHTML='🔥'; scene.appendChild(f);
+    setTimeout(()=>f.remove(),700);
+  } else if(type==='poison'){ const p = document.createElement('div'); p.className='effect'; p.style.left=(x-20)+'px'; p.style.top=(y-14)+'px'; p.innerHTML='☠️'; scene.appendChild(p); setTimeout(()=>p.remove(),900); }
+  else if(type==='freeze'){ const i = document.createElement('div'); i.className='effect'; i.style.left=(x-9)+'px'; i.style.top=(y-22)+'px'; i.innerHTML='❄️'; scene.appendChild(i); setTimeout(()=>i.remove(),600); }
+  else if(type==='bleed'){ const b = document.createElement('div'); b.className='effect'; b.style.left=(x-12)+'px'; b.style.top=(y-10)+'px'; b.innerHTML='🩸'; scene.appendChild(b); setTimeout(()=>b.remove(),500); }
+  else if(type==='shock'){ const s = document.createElement('div'); s.className='effect'; s.style.left=(x-9)+'px'; s.style.top=(y-9)+'px'; s.innerHTML='⚡'; scene.appendChild(s); setTimeout(()=>s.remove(),420); }
+}
 
-    // Visuals for status ticks
-    function spawnStatusTickEffect(entity, type, isEnemy){
-      const targetEl = isEnemy ? enemySpriteEl : playerSpriteEl;
-      const areaRect = battleAreaEl.getBoundingClientRect();
-      const targetRect = targetEl.getBoundingClientRect();
-      const centerX = (targetRect.left - areaRect.left) + targetRect.width/2;
-      const centerY = (targetRect.top - areaRect.top) + targetRect.height/2;
-      if(type === 'burn'){
-        const flame = document.createElement('div'); flame.className='effect burn-flame';
-        flame.style.left = centerX - 7 + 'px'; flame.style.top = centerY - 20 + 'px'; battleAreaEl.appendChild(flame);
-        setTimeout(()=> flame.remove(), 700);
-      } else if(type === 'poison'){
-        const puff = document.createElement('div'); puff.className='effect poison-cloud';
-        puff.style.left = centerX - 35 + 'px'; puff.style.top = centerY - 20 + 'px'; battleAreaEl.appendChild(puff);
-        setTimeout(()=> puff.remove(), 900);
-      } else if(type === 'freeze'){
-        const shard = document.createElement('div'); shard.className='effect ice-shard';
-        shard.style.left = centerX - 9 + 'px'; shard.style.top = centerY - 25 + 'px'; battleAreaEl.appendChild(shard);
-        setTimeout(()=> shard.remove(), 500);
-      } else if(type === 'bleed'){
-        const impact = document.createElement('div'); impact.className='effect impact';
-        impact.style.left = centerX - 24 + 'px'; impact.style.top = centerY - 24 + 'px'; battleAreaEl.appendChild(impact);
-        setTimeout(()=> impact.remove(), 450);
-      } else if(type === 'shock'){
-        const spark = document.createElement('div'); spark.className='effect magic-blast';
-        spark.style.left = centerX - 9 + 'px'; spark.style.top = centerY - 9 + 'px'; battleAreaEl.appendChild(spark);
-        setTimeout(()=> spark.remove(), 420);
-      }
-    }
+/* ---- Attack animations (basic per element) ---- */
+function animateAttack(element, isEnemy){
+  const areaRect = scene.getBoundingClientRect();
+  const playerEl = document.getElementById('playerSpriteSmall');
+  const enemyEl = document.getElementById('enemySpriteSmall');
+  if(!playerEl || !enemyEl) return;
+  const pRect = playerEl.getBoundingClientRect(), eRect = enemyEl.getBoundingClientRect();
+  const startX = pRect.left - areaRect.left + pRect.width/2;
+  const startY = pRect.top - areaRect.top + pRect.height/2;
+  const endX = eRect.left - areaRect.left + eRect.width/2;
+  const endY = eRect.top - areaRect.top + eRect.height/2;
+  if(element==='physical' || element==='wind'){
+    const swipe = document.createElement('div'); swipe.className='effect'; swipe.style.left=(endX-60)+'px'; swipe.style.top=(endY-30)+'px'; swipe.style.width='120px'; swipe.style.height='60px'; swipe.style.borderRadius='60px'; swipe.style.background='linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02))'; scene.appendChild(swipe);
+    setTimeout(()=> swipe.remove(), 420);
+  } else if(element==='fire'){
+    const f = document.createElement('div'); f.className='effect'; f.style.left=(startX-9)+'px'; f.style.top=(startY-9)+'px'; f.innerHTML='🔥'; scene.appendChild(f);
+    const anim = f.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${endX-startX}px,${endY-startY}px) scale(0.9)`,opacity:0.8}],{duration:420,easing:'ease-out',fill:'forwards'});
+    anim.onfinish=()=> f.remove();
+  } else if(element==='ice'){
+    const i = document.createElement('div'); i.className='effect'; i.style.left=(startX-6)+'px'; i.style.top=(startY-20)+'px'; i.innerHTML='🧊'; scene.appendChild(i);
+    const anim = i.animate([{transform:'translate(0,0)'},{transform:`translate(${endX-startX}px,${endY-startY}px) rotate(10deg)`,opacity:0.6}],{duration:420});
+    anim.onfinish=()=> i.remove();
+  } else if(element==='poison'){
+    const p = document.createElement('div'); p.className='effect'; p.style.left=(startX-10)+'px'; p.style.top=(startY-10)+'px'; p.innerHTML='☠️'; scene.appendChild(p);
+    const anim = p.animate([{transform:'translate(0,0)',opacity:1},{transform:`translate(${endX-startX}px,${endY-startY}px) scale(1.1)`,opacity:0.3}],{duration:520});
+    anim.onfinish=()=> p.remove();
+  } else if(element==='shock'){
+    const s = document.createElement('div'); s.className='effect'; s.style.left=(endX-9)+'px'; s.style.top=(endY-9)+'px'; s.innerHTML='⚡'; scene.appendChild(s); setTimeout(()=> s.remove(),420);
+  } else {
+    // arcane / others: purple orb
+    const o = document.createElement('div'); o.className='effect'; o.style.left=(startX-9)+'px'; o.style.top=(startY-9)+'px'; o.innerHTML='🔮'; scene.appendChild(o);
+    const anim = o.animate([{transform:'translate(0,0)'},{transform:`translate(${endX-startX}px,${endY-startY}px) scale(0.7)`,opacity:0.6}],{duration:440});
+    anim.onfinish=()=> o.remove();
+  }
+}
 
-    // Attack visuals
-    function spawnSwordSwipeOnEnemy(){
-      if(!enemy) return;
-      const areaRect = battleAreaEl.getBoundingClientRect();
-      const enemyRect = enemySpriteEl.getBoundingClientRect();
-      const effect = document.createElement('div'); effect.className='effect sword-swipe';
-      const left = (enemyRect.left - areaRect.left) - 40;
-      const top = (enemyRect.top - areaRect.top) + (enemyRect.height/2) - 30;
-      effect.style.left = left + 'px'; effect.style.top = top + 'px'; battleAreaEl.appendChild(effect);
-      setTimeout(()=> effect.remove(), 700);
-    }
+/* ---- Player death: hospital & bandits ---- */
+function playerDeath(){
+  // hospital fee: percent of gold based on wealth
+  const gold = state.player.gold;
+  let fee = Math.max(5, Math.round(gold * (0.08 + Math.random()*0.18)));
+  // chance bandits steal one item and all gold if pillaged
+  const banditChance = 0.12 + Math.random()*0.08;
+  if(Math.random() < banditChance && state.player.inventory.length>0){
+    // lose one item and all gold
+    const idx = Math.floor(Math.random()*state.player.inventory.length);
+    const lostItem = state.player.inventory.splice(idx,1)[0];
+    // move lost item to retrievals with timer based on rarity
+    const mins = ({common:1,uncommon:5,rare:15,epic:30,legendary:60})[lostItem.rarity] || 5;
+    const unlockAt = now() + mins*60*1000;
+    const feeRetrieve = Math.round(lostItem.power * 2 + state.player.level*3);
+    state.retrievals.push({item:lostItem,unlockAt,fee:feeRetrieve});
+    // bandits take all gold
+    state.player.gold = 0;
+    showMsg(`You passed out! Bandits stole ${lostItem.name} and all your gold. Hospital still charges a fee of ${fee}.`);
+  } else {
+    // no pillage
+    state.player.gold = Math.max(0, state.player.gold - fee);
+    showMsg(`You passed out and wake up in the hospital. You pay ${fee} gold for care.`);
+  }
+  // restore some HP and respawn at entrance after short delay
+  state.player.hp = Math.max(1, Math.floor(state.player.maxhp*0.6));
+  state.inCombat = false; state.enemy = null; state.storedEnemy = null;
+  updateUI(); saveGame(false);
+  // bring player to entrance
+  setTimeout(()=>{ renderEntrance(); }, 900);
+}
 
-    function spawnMagicBlastFromPlayerToEnemy(style){
-      if(!enemy) return;
-      const areaRect = battleAreaEl.getBoundingClientRect();
-      const playerRect = playerSpriteEl.getBoundingClientRect();
-      const enemyRect = enemySpriteEl.getBoundingClientRect();
-      const startX = (playerRect.left - areaRect.left) + playerRect.width/2;
-      const startY = (playerRect.top - areaRect.top) + playerRect.height/2;
-      const endX = (enemyRect.left - areaRect.left) + enemyRect.width/2;
-      const endY = (enemyRect.top - areaRect.top) + enemyRect.height/2;
-      const blast = document.createElement('div');
-      if(style === 'ice'){ blast.className='effect ice-shard'; blast.style.width='10px'; blast.style.height='22px'; }
-      else if(style === 'poison'){ blast.className='effect poison-cloud'; blast.style.width='30px'; blast.style.height='20px'; }
-      else { blast.className='effect magic-blast'; }
-      blast.style.left = startX - 9 + 'px'; blast.style.top = startY - 9 + 'px'; battleAreaEl.appendChild(blast);
-      const dx = endX - startX; const dy = endY - startY;
-      const anim = blast.animate([{ transform: 'translate(0px,0px)', opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) scale(0.9)`, opacity: 0.85 }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
-      anim.onfinish = () => { spawnImpactAt(endX,endY); blast.remove(); };
-    }
+/* attemptRetrieve from shop */
+function attemptRetrieve(idx){
+  const rec = state.retrievals[idx];
+  if(!rec) return;
+  if(state.player.gold < rec.fee){ alert('Not enough gold'); return; }
+  state.player.gold -= rec.fee;
+  state.player.inventory.push(rec.item);
+  state.retrievals.splice(idx,1);
+  updateUI(); saveGame(false);
+  showMsg('Retrieved ' + rec.item.name);
+}
 
-    function spawnImpactAt(x,y){
-      const impact = document.createElement('div'); impact.className='impact';
-      impact.style.left = x - 24 + 'px'; impact.style.top = y - 24 + 'px'; battleAreaEl.appendChild(impact); setTimeout(()=> impact.remove(), 420);
-    }
+/* equip/drop item */
+function equipItem(id){
+  const itIdx = state.player.inventory.findIndex(i=>i.id===id);
+  if(itIdx<0) return;
+  const it = state.player.inventory[itIdx];
+  if(it.type==='weapon'){ state.player.weapon = it; showMsg('Equipped weapon '+it.name); }
+  else { state.player.armor = it; showMsg('Equipped armor '+it.name); }
+  // remove from inventory (you could choose to keep duplicates; for simplicity remove)
+  state.player.inventory.splice(itIdx,1);
+  updateUI(); saveGame(false);
+}
+function dropItem(id){
+  const idx = state.player.inventory.findIndex(i=>i.id===id);
+  if(idx<0) return;
+  const it = state.player.inventory.splice(idx,1)[0];
+  // drop to retrieval with short unlock (2-5 minutes) as if left behind in room/shop
+  const unlockAt = now() + (1 + Math.floor(Math.random()*5))*60*1000;
+  state.retrievals.push({item:it,unlockAt,fee:Math.round(it.power*0.8)});
+  updateUI(); saveGame(false);
+  showMsg('Dropped ' + it.name + '. It is retrievable from the shop for a fee.');
+}
 
-    // Central death handler
-    function handleEnemyDeath(){
-      enemy = null; storedEnemy = null; inCombat = false; roomActive = false; enemyCenterEl.style.display = 'none';
-      updateUI(); saveGame(false);
-    }
+/* ---- Shop generation and retrieval timer checks ---- */
+function openShop(){
+  // generate shop items scaled to player level
+  state.shopItems = [];
+  const lvl = state.player.level;
+  for(let i=0;i<6;i++){
+    state.shopItems.push(makeItem(i%2===0?'weapon':'armor', Math.max(1, Math.round(lvl + (i-3) + (Math.random()*3)))));
+  }
+  // render simple shop view in a modal using right panel card (reuse alert for now)
+  const list = state.shopItems.map(it => `<div class="item"><div>${it.emoji} <strong class="rarity-${it.rarity}">${it.name}</strong><div class="muted">Lv${it.levelReq} • P:${it.power}</div></div><div><button onclick="buyShopItem('${it.id}')">Buy (${Math.round(it.power*1.5)})</button></div></div>`).join('');
+  alert('Shop (temporary):\n\n'+ state.shopItems.map(it=>`${it.name} — Power ${it.power} — Price ${Math.round(it.power*1.5)}`).join('\n'));
+}
+function buyShopItem(id){
+  const it = state.shopItems.find(i=>i.id===id);
+  if(!it) return;
+  const price = Math.round(it.power*1.5);
+  if(state.player.gold < price){ alert('Not enough gold'); return; }
+  state.player.gold -= price;
+  state.player.inventory.push(it);
+  updateUI(); saveGame(false);
+  alert('Bought ' + it.name);
+}
 
-    // Attack execution
-    function executeAttack(attackId){
-      if(!enemy){ closeAttackModal(); story('No enemy'); return; }
-      const attack = getAttackById(attackId);
-      if(!attack){ closeAttackModal(); story('Invalid attack'); return; }
-      const localStamp = enemy.combatStamp;
-      let dmg = Math.max(1, Math.floor(attack.dmg + player.level*0.5 + player.weapon*1.2));
-      const crit = Math.random() < critChance();
-      if(crit) dmg = Math.floor(dmg * 1.5);
-      // visuals
-      if(attack.element === 'physical' || attack.element === 'wind') spawnSwordSwipeOnEnemy(); else spawnMagicBlastFromPlayerToEnemy(attack.element);
-      // apply mid-animation
-      setTimeout(()=>{
-        if(!enemy || enemy.combatStamp !== localStamp) return;
-        enemy.hp = Math.max(0, enemy.hp - dmg);
-        let text = `Used ${attack.name} for ${dmg}${crit ? ' CRIT!' : ''}`;
-        if(attack.status && Math.random() < attack.statusChance){
-          applyStatusTo(enemy, attack.status);
-          text += ` | ${attack.status.kind} applied`;
-        }
-        if(enemy.hp <= 0){
-          const gold = attack.aoe ? (25 + player.level*6) : (14 + player.level*4);
-          player.gold += gold; gainExp(attack.aoe ? (20 + player.level*2) : (8 + player.level*2));
-          story(text + ` | Killed! +${gold}g`);
-          handleEnemyDeath();
-          closeAttackModal();
-          return;
-        } else {
-          story(text);
-          updateUI();
-        }
-      }, 180);
+/* ---- Level & EXP ---- */
+function gainExp(amt){
+  state.player.exp += amt;
+  let leveled = false;
+  while(state.player.exp >= state.player.expNext){
+    state.player.exp -= state.player.expNext;
+    state.player.level++; state.player.expNext = Math.floor(state.player.expNext * 1.45);
+    state.player.maxhp = Math.round(20 + (state.player.level-1)* (12));
+    state.player.hp = state.player.maxhp;
+    showMsg('Level up! Now level ' + state.player.level);
+    leveled = true;
+  }
+  updateUI(); saveGame(false);
+  if(leveled) offerLearnableAttacks();
+}
 
-      // after attack: status ticks, then enemy counterattack unless frozen/stunned
-      setTimeout(()=>{
-        if(enemy && enemy.combatStamp === localStamp){
-          processStatusesOn(enemy, true);
-          updateUI();
-        }
-        if(!enemy || enemy.combatStamp !== localStamp){ closeAttackModal(); return; }
-        if(enemyHasStatus(enemy,'freeze') || (enemyHasStatus(enemy,'shock') && Math.random() < 0.15)){
-          story(enemy.name + " can't act!");
-          closeAttackModal(); saveGame(false); return;
-        }
-        triggerEnemyAttack();
-        setTimeout(()=>{
-          if(!enemy || enemy.combatStamp !== localStamp){ closeAttackModal(); return; }
-          const edmg = Math.max(1, enemy.dmg - getDefense());
-          player.hp = Math.max(0, player.hp - edmg);
-          story(enemy.name + " hits " + edmg);
-          processStatusesOn(player, false);
-          if(player.hp <= 0) die(enemy.name);
-          updateUI(); closeAttackModal(); saveGame(false);
-        }, 240);
-      }, 520);
-    }
+/* Offer learnable attacks unique to class (different levels per class already assigned by generation) */
+function offerLearnableAttacks(){
+  const cls = state.player.cls;
+  const available = ATTACKS_BY_CLASS[cls].filter(a=> a.level <= state.player.level && !state.player.known.includes(a.id));
+  if(available.length===0) return;
+  // pick 2 candidates at random
+  shuffle(available);
+  const cands = available.slice(0,2);
+  // display learnModal
+  const gm = document.getElementById('learnModal'); const grid = document.getElementById('learnGrid'); grid.innerHTML='';
+  document.getElementById('learnDesc').innerText = 'Choose an attack to learn (or skip). If 4 slots full, you will be asked to replace.';
+  cands.forEach(a=>{
+    const div = document.createElement('div'); div.className='attack-card';
+    div.innerHTML = `<h4>${a.name}</h4><div class="muted">Lvl ${a.level} • ${a.element} • DMG ${a.dmg}</div><div class="muted">${a.desc}</div>`;
+    div.onclick = ()=> { state.player.known.push(a.id); if(state.player.slots.length < 4) state.player.slots.push(a.id); else openReplaceFor(a.id); gm.style.display='none'; saveGame(false); };
+    grid.appendChild(div);
+  });
+  gm.style.display='block';
+}
+function closeLearnModal(){ document.getElementById('learnModal').style.display='none'; }
+function openReplaceFor(newId){
+  const rm = document.getElementById('replaceModal'); const grid = document.getElementById('replaceGrid'); grid.innerHTML='';
+  state.player.slots.forEach((s,idx)=>{
+    const at = ATTACKS_BY_CLASS[state.player.cls].find(a=>a.id===s);
+    const div = document.createElement('div'); div.className='attack-card';
+    div.innerHTML = `<h4>Replace ${at.name}</h4><div class="muted">${at.desc}</div>`;
+    div.onclick = ()=> { state.player.slots[idx] = newId; rm.style.display='none'; saveGame(false); };
+    grid.appendChild(div);
+  });
+  const keep = document.createElement('div'); keep.className='attack-card'; keep.innerHTML = `<h4>Don't replace</h4><div class="muted">Add to known but keep equipped</div>`; keep.onclick = ()=> { rm.style.display='none'; saveGame(false); };
+  grid.appendChild(keep);
+  rm.style.display='block';
+}
+function closeReplaceModal(){ document.getElementById('replaceModal').style.display='none'; }
 
-    // Attack modal UI
-    function openAttackModal(){
-      ensureInitialAttacks();
-      const modal = el('attackModal');
-      const grid = el('attackGrid'); grid.innerHTML = '';
-      while(player.attackSlots.length < 4){
-        const candidate = player.knownAttacks.find(id => !player.attackSlots.includes(id));
-        if(!candidate) break;
-        player.attackSlots.push(candidate);
-      }
-      for(let i=0;i<4;i++){
-        const id = player.attackSlots[i];
-        const card = document.createElement('div'); card.className='attack-card';
-        if(id){
-          const at = getAttackById(id);
-          card.innerHTML = `<strong>${at.name}</strong><small>Lvl ${at.lvlRequirement} • ${at.element}${at.aoe ? ' • AOE' : ''}</small><div class="muted">${at.desc}</div>`;
-          card.onclick = ()=> executeAttack(id);
-        } else {
-          card.innerHTML = `<em>Empty</em><small>Assign an attack</small>`;
-          card.onclick = ()=> story('No attack equipped in this slot');
-        }
-        grid.appendChild(card);
-      }
-      modal.style.display = 'block';
-    }
-    function closeAttackModal(){ el('attackModal').style.display = 'none'; }
+/* ---- Attack Reference modal ---- */
+function openAttackRef(){
+  attackRefGrid.innerHTML='';
+  const cls = state.player.cls;
+  ATTACKS_BY_CLASS[cls].forEach(a=>{
+    const div = document.createElement('div'); div.className='attack-card';
+    div.innerHTML = `<h4>${a.name}</h4><div class="muted">Lvl ${a.level} • ${a.element} • DMG ${a.dmg} • Req d20≥${a.threshold}</div><div class="muted">${a.desc}</div>`;
+    attackRefGrid.appendChild(div);
+  });
+  attackRefModal.style.display='block';
+}
+function closeAttackRef(){ attackRefModal.style.display='none'; }
 
-    // Learn modal and replace modal (same as previous)
-    let _pendingLearnId = null;
-    function openLearnModal(candidates){
-      const modal = el('learnModal'); const grid = el('learnGrid'); grid.innerHTML='';
-      el('learnDesc').innerText = 'Choose an attack to learn (or skip). If your 4 slots are full you will be prompted to replace one.';
-      for(const a of candidates){
-        const card = document.createElement('div'); card.className='attack-card';
-        card.innerHTML = `<strong>${a.name}</strong><small>Lvl ${a.lvlRequirement} • ${a.element}</small><div class="muted">${a.desc}</div>`;
-        card.onclick = ()=> {
-          if(!player.knownAttacks.includes(a.id)) player.knownAttacks.push(a.id);
-          if(player.attackSlots.length < 4){
-            if(!player.attackSlots.includes(a.id)) player.attackSlots.push(a.id);
-            story('Learned ' + a.name + ' and equipped.');
-            saveGame(false); closeLearnModal();
-          } else {
-            _pendingLearnId = a.id; openReplaceModal();
-            closeLearnModal();
-          }
-        };
-        grid.appendChild(card);
-      }
-      modal.style.display = 'block';
-    }
-    function closeLearnModal(){ el('learnModal').style.display='none'; }
+/* ---- Helpers for save/load UI controls ---- */
+document.getElementById('saveBtn').addEventListener('click', ()=> saveGame(true));
+document.getElementById('loadBtn').addEventListener('click', ()=> { if(loadGame()) { showMsg('Loaded'); updateUI(); } else alert('No save or load failed'); });
+document.getElementById('resetBtn').addEventListener('click', ()=> { if(confirm('Reset and clear save?')) resetGame(); });
 
-    function openReplaceModal(){
-      const modal = el('replaceModal'); const grid = el('replaceGrid'); grid.innerHTML='';
-      for(let i=0;i<player.attackSlots.length;i++){
-        const id = player.attackSlots[i]; const at = getAttackById(id);
-        const card = document.createElement('div'); card.className='attack-card';
-        card.innerHTML = `<strong>Replace slot ${i+1}: ${at.name}</strong><small>${at.desc}</small>`;
-        card.onclick = ()=> {
-          player.attackSlots[i] = _pendingLearnId;
-          story('Replaced ' + at.name + ' with ' + getAttackById(_pendingLearnId).name);
-          saveGame(false); _pendingLearnId = null; closeReplaceModal();
-        };
-        grid.appendChild(card);
-      }
-      const addOnly = document.createElement('div'); addOnly.className='attack-card';
-      addOnly.innerHTML = `<strong>Add to known (no replace)</strong><small>Keep current equipped attacks</small>`;
-      addOnly.onclick = ()=> { story('Learned ' + getAttackById(_pendingLearnId).name + ' (not equipped)'); saveGame(false); _pendingLearnId = null; closeReplaceModal(); };
-      grid.appendChild(addOnly);
-      modal.style.display = 'block';
-    }
-    function closeReplaceModal(){ el('replaceModal').style.display='none'; updateUI(); }
+/* ---- Render scene depending on state ---- */
+function renderScene(){
+  if(!state.player.cls){ renderEntrance(); return; }
+  if(!state.enemy){ renderEntrance(); return; }
+  // show battle view handled by renderBattle earlier
+}
 
-    // Character modal
-    function openCharacterModal(){
-      el('charModal').style.display = 'block';
-      // If already selected, preview it
-      if(player.spriteEmoji) previewCharacter(player.spriteEmoji);
-      else previewCharacter('🧙');
-    }
-    function previewCharacter(emoji){
-      const cls = CLASS_BY_EMOJI[emoji] || 'mage';
-      const profile = CLASS_PROFILES[cls];
-      el('charName').innerText = `${emoji} ${profile.name}`;
-      el('charDesc').innerText = profile.desc;
-      el('charStrong').innerText = profile.strengths;
-      el('charWeak').innerText = profile.weaknesses;
-      // show attack breakdown per level for this class
-      const cont = el('charAttacks'); cont.innerHTML = '';
-      const classAttacks = ATTACKS.filter(a=>a.classes.includes(cls));
-      // group by level
-      const grouped = {};
-      for(const a of classAttacks){
-        grouped[a.lvlRequirement] = grouped[a.lvlRequirement] || [];
-        grouped[a.lvlRequirement].push(a);
-      }
-      const levels = Object.keys(grouped).map(n=>parseInt(n)).sort((a,b)=>a-b);
-      for(const lvl of levels){
-        const block = document.createElement('div');
-        block.innerHTML = `<strong>Level ${lvl}</strong>`;
-        const list = document.createElement('div');
-        for(const at of grouped[lvl]){
-          const elatk = document.createElement('div'); elatk.style.fontSize='13px';
-          elatk.innerHTML = `• ${at.name} (${at.element}) — ${at.desc}`;
-          list.appendChild(elatk);
-        }
-        block.appendChild(list);
-        cont.appendChild(block);
-      }
-      // store preview selection temporarily
-      el('charModal').dataset.preview = emoji;
-    }
-    function applyCharacterSelection(){
-      const emoji = el('charModal').dataset.preview || '🧙';
-      // If changing character mid-game, confirm
-      if(player.spriteEmoji && player.spriteEmoji !== emoji){
-        if(!confirm('Change character? This will reset learned attacks and slots.')) return;
-      }
-      player.spriteEmoji = emoji; player.spriteImg = null;
-      // reset attack learning for new class
-      player.knownAttacks = []; player.attackSlots = [];
-      ensureInitialAttacks();
-      el('charModal').style.display = 'none';
-      saveGame(false); updateUI();
-    }
+/* ---- Small utilities ---- */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-    // Attack reference modal
-    function openAttackRef(){
-      const modal = el('attackRefModal'); const grid = el('attackRefGrid'); grid.innerHTML='';
-      const cls = CLASS_BY_EMOJI[player.spriteEmoji] || 'mage';
-      const classAttacks = ATTACKS.filter(a=>a.classes.includes(cls)).sort((a,b)=>a.lvlRequirement - b.lvlRequirement);
-      for(const a of classAttacks){
-        const card = document.createElement('div'); card.className='attack-card';
-        card.innerHTML = `<strong>${a.name}</strong><small>Lvl ${a.lvlRequirement} • ${a.element}${a.aoe ? ' • AOE':''}</small><div class="muted">${a.desc}${a.status? ' • Status:'+a.status.kind : ''}</div>`;
-        grid.appendChild(card);
-      }
-      modal.style.display = 'block';
-    }
-    function closeAttackRef(){ el('attackRefModal').style.display = 'none'; }
+/* ---- Start: if a save exists show title Continue, else New game comes up on title */ 
+(function boot(){
+  const saved = localStorage.getItem(SAVE_KEY);
+  if(saved){ document.getElementById('continueBtn').style.display='inline-block'; } else document.getElementById('continueBtn').style.display='none';
+  updateUI();
+})();
 
-    // Level up / experience
-    function gainExp(x){
-      player.exp += x;
-      let leveled = false;
-      while(player.exp >= player.expNext){
-        player.exp -= player.expNext;
-        player.level++; player.expNext = Math.floor(player.expNext * 1.45);
-        recalcPlayerHPOnLevelUp();
-        story('LEVEL UP! Now L' + player.level);
-        leveled = true;
-      }
-      updateUI();
-      if(leveled) checkForLearnableAttacks();
-    }
-    function recalcPlayerHPOnLevelUp(){ player.maxhp = basePlayerHP + (player.level - 1) * hpPerLevel; player.hp = player.maxhp; }
-
-    function checkForLearnableAttacks(){
-      const cls = CLASS_BY_EMOJI[player.spriteEmoji] || 'mage';
-      const candidates = ATTACKS.filter(a => a.lvlRequirement <= player.level && a.classes.includes(cls) && !player.knownAttacks.includes(a.id));
-      if(candidates.length === 0) return;
-      shuffle(candidates); openLearnModal(candidates.slice(0,3));
-    }
-
-    // Rooms & spawning
-    function chooseRoom(dir){
-      if(inCombat){ story('Finish fight'); return; }
-      closePanels();
-      if(storedEnemy){ enemy = storedEnemy; inCombat=true; enemyCenterEl.style.display='block'; story('You return... ' + enemy.name + ' waits!'); updateUI(); return; }
-      if(roomActive){ story('Clear room first'); return; }
-      roomCount++; roomActive = true;
-      if(Math.random() < 0.22){ let gold = 6 + player.level * 3; player.gold += gold; story('You found ' + gold + ' gold!'); roomActive=false; updateUI(); saveGame(false); return; }
-      const bossDepth = Math.max(2, Math.floor(baseBossDepth + Math.floor(player.level * bossDepthPerLevel)));
-      const bossChance = extraBossChance + Math.min(0.12, player.level * 0.01);
-      if((roomCount % bossDepth === 0) || Math.random() < bossChance){
-        const base = createBoss();
-        enemy = { ...base, statuses: [] };
-        incrementCombatStampFor(enemy);
-        storedEnemy = enemy; inCombat=true; enemyCenterEl.style.display='block';
-        story('You go ' + dir + '... ' + enemy.name + ' (BOSS) appears!'); updateUI(); saveGame(false); return;
-      }
-      const base = enemiesBase[Math.floor(Math.random()*enemiesBase.length)];
-      enemy = { name: base.name, sprite: base.sprite, hp: base.hp + Math.floor(player.level*2.2), maxhp: base.hp + Math.floor(player.level*2.2), dmg: base.dmg + Math.floor(player.level*0.6), statuses: [] };
-      incrementCombatStampFor(enemy); storedEnemy = enemy; inCombat = true; enemyCenterEl.style.display='block';
-      story('You go ' + dir + '... ' + enemy.name + ' appears!'); updateUI(); saveGame(false);
-    }
-    function incrementCombatStampFor(e){ combatStamp++; if(e) e.combatStamp = combatStamp; }
-
-    function createBoss(){
-      const lvl = player.level;
-      const bossBaseHp = 70;
-      const hp = Math.floor(bossBaseHp + lvl * 28 + Math.pow(lvl, 1.25) * 10);
-      const dmg = Math.max(4, Math.floor(10 + lvl * 2.8 + Math.pow(lvl, 1.05) * 1.3));
-      const name = "Overlord L" + lvl;
-      return { name, sprite: "👹", hp, maxhp: hp, dmg, isBoss: true };
-    }
-
-    function runAway(){ if(!enemy){ story('Nothing to run'); return; } enemy=null; inCombat=false; enemyCenterEl.style.display='none'; story('You fled. Return to finish the room.'); updateUI(); saveGame(false); }
-
-    // Healing
-    function heal(){ if(player.hp >= player.maxhp){ story('HP is full'); return; } let order=['mega','large','medium','small']; for(let p of order){ if(player.potions[p] > 0){ usePotion(p); return; } } story('No potions'); }
-    function usePotion(t){ if(player.hp >= player.maxhp){ story('HP is full'); return; } if(player.potions[t] <= 0){ story('No ' + t); return; } player.hp = Math.min(player.maxhp, player.hp + healVal[t]); player.potions[t]--; story('Used ' + t + ' (+' + healVal[t] + ')'); updateUI(); saveGame(false); }
-
-    // Story & UI
-    function story(t){
-      el('dialogContent').innerHTML = `Level ${player.level} - Room ${roomCount}<br>Weapon L:${player.weapon} • Armor L:${player.armor} • EXP:${player.exp}/${player.expNext}<br>${t}`;
-    }
-
-    function updateUI(){
-      el('playerInfo').innerHTML = `LVL:${player.level} &nbsp; HP:${player.hp}/${player.maxhp} &nbsp; GOLD:${player.gold}`;
-      if(player.spriteImg) playerSpriteEl.innerHTML = `<img src="${player.spriteImg}" alt="player">`;
-      else playerSpriteEl.textContent = player.spriteEmoji || '🧙';
-      playerGearEl.textContent = `Weapon L:${player.weapon} • Armor L:${player.armor}`;
-      if(enemy){
-        enemy.hp = Math.max(0, enemy.hp);
-        enemySpriteEl.style.fontSize = enemy.isBoss ? '72px' : '64px';
-        enemySpriteEl.innerHTML = enemy.sprite && enemy.sprite.startsWith('data:') ? `<img src="${enemy.sprite}" alt="enemy">` : enemy.sprite;
-        el('enemyHPText').innerHTML = `${enemy.name} HP:${enemy.hp}/${enemy.maxhp}`;
-        enemyCenterEl.style.display = 'block';
-      } else {
-        enemySpriteEl.innerText = ''; el('enemyHPText').innerText = ''; enemyCenterEl.style.display = 'none';
-      }
-      playerFillEl.style.width = (player.maxhp>0 ? (player.hp/player.maxhp*100) : 0) + '%';
-      enemyFillEl.style.width = enemy ? (enemy.maxhp>0 ? (enemy.hp/enemy.maxhp*100) : 0) + '%' : '0%';
-      el('invText').innerHTML = `Small (${healVal.small}):${player.potions.small}<br>Medium (${healVal.medium}):${player.potions.medium}<br>Large (${healVal.large}):${player.potions.large}<br>Mega (${healVal.mega}):${player.potions.mega}`;
-      updateShop();
-    }
-
-    function die(k){
-      story('Killed by ' + k);
-      player.level = 1; player.exp = 0; player.expNext = 10; player.maxhp = basePlayerHP; player.hp = player.maxhp; player.gold = 50;
-      player.potions = { small:0, medium:0, large:0, mega:0 }; roomCount = 0; enemy=null; storedEnemy=null; inCombat=false; roomActive=false; enemyCenterEl.style.display='none';
-      saveGame(false); updateUI();
-    }
-
-    // Utility
-    function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
-
-    // Hook up controls
-    el('saveBtn').addEventListener('click', ()=>saveGame(true));
-    el('loadBtn').addEventListener('click', ()=>{ if(loadGame(true)) { updateUI(); } });
-    el('resetBtn').addEventListener('click', ()=>{ if(confirm('Reset game to defaults and clear save?')){ localStorage.removeItem(SAVE_KEY); location.reload(); } });
-    el('spriteUpload').addEventListener('change', async (ev)=>{ const f=ev.target.files && ev.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ player.spriteImg=r.result; player.spriteEmoji=null; saveGame(false); updateUI(); }; r.readAsDataURL(f); });
-
-    // Autosave
-    setInterval(()=> saveGame(false), 15000);
-    window.addEventListener('beforeunload', ()=> saveGame(false));
-
-    // Initialization: try load existing save; if none, open char modal
-    (function init(){
-      const raw = localStorage.getItem(SAVE_KEY);
-      if(raw){
-        // we let player decide whether to load or choose new; but load automatically to resume
-        try{ const d = JSON.parse(raw); if(d.player){ player = d.player; enemy = d.enemy; storedEnemy = d.storedEnemy; inCombat = !!d.inCombat; roomActive=!!d.roomActive; roomCount=d.roomCount||0; combatStamp = d.combatStamp||0; } }catch(e){}
-        // ensure arrays exist
-        player.knownAttacks = player.knownAttacks || [];
-        player.attackSlots = player.attackSlots || [];
-        updateUI();
-      } else {
-        // first run show character selection
-        openCharacterModal();
-      }
-      ensureInitialAttacks();
-      setInterval(updateUI, 140);
-      updateUI();
-    })();
-
-    // Expose debug
-    window._save = saveGame; window._load = loadGame; window._attacks = ATTACKS; window._player = player; window._openAttacks = openAttackRef;
-  </script>
+</script>
 </body>
 </html>
